@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { useUIStore } from '@/store/ui-store';
@@ -17,7 +18,9 @@ import {
   FileText,
   Presentation,
   LogOut,
-  Menu
+  Menu,
+  Home,
+  List
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,8 +28,10 @@ const Sidebar = () => {
   const { user, logout } = useAuthStore();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
   const [unitsExpanded, setUnitsExpanded] = useState(true);
+  const [logoError, setLogoError] = useState(false);
 
   const unitMenuItems = [
+    { href: '/units', label: 'View All Units', icon: List },
     { href: '/units/add', label: 'Add Unit', icon: Plus },
     { href: '/units/edit', label: 'Edit Unit', icon: Edit },
     { href: '/units/assessments', label: 'Generate Assessments', icon: FileText },
@@ -34,7 +39,46 @@ const Sidebar = () => {
     { href: '/units/presentations', label: 'Generate Presentation', icon: Presentation },
   ];
 
-  const isActive = (href: string) => pathname.startsWith(href);
+  const isActive = (href: string) => {
+    if (href === '/units') {
+      return pathname === '/units';
+    }
+    if (href === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    return pathname.startsWith(href);
+  };
+
+  // Logo component that falls back to text if image not available
+  const LogoComponent = ({ className }: { className?: string }) => {
+    const logoPath = user?.domain === 'scei-he' 
+      ? '/images/logos/scei-he-logo.png' 
+      : '/images/logos/scei-logo.png';
+
+    if (logoError) {
+      // Fallback to text logo
+      return (
+        <div className={cn("w-10 h-10 bg-primary-800 rounded flex items-center justify-center", className)}>
+          <span className="text-white font-bold text-sm">
+            {user?.domain === 'scei-he' ? 'HE' : 'SC'}
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className={cn("w-10 h-10 rounded overflow-hidden bg-white", className)}>
+        <Image
+          src={logoPath}
+          alt={user?.domain === 'scei-he' ? 'SCEI HE Logo' : 'SCEI Logo'}
+          width={40}
+          height={40}
+          className="w-full h-full object-contain"
+          onError={() => setLogoError(true)}
+        />
+      </div>
+    );
+  };
 
   return (
     <>
@@ -55,19 +99,15 @@ const Sidebar = () => {
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-800 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">
-                  {user?.domain === 'scei-he' ? 'HE' : 'SC'}
-                </span>
-              </div>
+            <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+              <LogoComponent />
               <div>
                 <h2 className="font-semibold text-gray-900">
                   {user?.domain === 'scei-he' ? 'SCEI HE' : 'SCEI'}
                 </h2>
                 <p className="text-xs text-gray-500">Education Institute</p>
               </div>
-            </div>
+            </Link>
             <Button
               variant="ghost"
               size="sm"
@@ -80,14 +120,26 @@ const Sidebar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
+          {/* Dashboard */}
+          <Link
+            href="/dashboard"
+            className={cn(
+              "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors",
+              isActive('/dashboard') ? "bg-primary-50 text-primary-800" : "text-gray-700"
+            )}
+          >
+            <Home className="h-4 w-4" />
+            <span>Dashboard</span>
+          </Link>
+
           {/* Units Section */}
           <div>
             <button
               onClick={() => setUnitsExpanded(!unitsExpanded)}
               className={cn(
-                "flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md hover:bg-gray-100",
-                isActive('/units') ? "bg-primary-50 text-primary-800" : "text-gray-700"
+                "flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md hover:bg-gray-100 transition-colors",
+                pathname.startsWith('/units') ? "bg-primary-50 text-primary-800" : "text-gray-700"
               )}
             >
               <div className="flex items-center space-x-2">
@@ -136,7 +188,7 @@ const Sidebar = () => {
         </nav>
 
         {/* User Info & Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -156,6 +208,7 @@ const Sidebar = () => {
               size="sm"
               onClick={logout}
               className="text-gray-500 hover:text-gray-700"
+              title="Logout"
             >
               <LogOut className="h-4 w-4" />
             </Button>

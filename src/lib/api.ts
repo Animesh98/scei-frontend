@@ -14,6 +14,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = token;
   }
   
+  // Always set domain from authenticated user, not from request
   if (user?.domain) {
     config.headers.domain = user.domain;
   }

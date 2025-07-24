@@ -12,6 +12,16 @@ import {
   PaginatedResponse 
 } from '@/types';
 
+// SCEI API payload interface - exported for use in components
+export interface SceiUnitPayload {
+  unit_code: string;
+  name: string;
+  competency: string;
+  elements: Array<{ element: string; criteria: string[] }>;
+  evidences: Array<{ element: string; subTopics: string[] }>;
+  knowledge: Array<{ element: string; subTopics: string[] }>;
+}
+
 // Units
 export const useUnits = (page: number = 0, limit: number = 10) => {
   return useQuery({
@@ -38,7 +48,8 @@ export const useCreateUnit = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (unitData: Partial<Unit>) => {
+    mutationFn: async (unitData: SceiUnitPayload) => {
+      // For SCEI domain, send data as-is (matches expected API format)
       const response = await api.post<ApiResponse<Unit>>('/units', unitData);
       return response.data;
     },
@@ -52,7 +63,8 @@ export const useUpdateUnit = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...unitData }: Partial<Unit> & { id: string }) => {
+    mutationFn: async ({ id, ...unitData }: { id: string } & SceiUnitPayload) => {
+      // For SCEI domain, send data as-is (matches expected API format)
       const response = await api.put<ApiResponse<Unit>>(`/units/${id}`, unitData);
       return response.data;
     },
@@ -60,6 +72,31 @@ export const useUpdateUnit = () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
       queryClient.invalidateQueries({ queryKey: ['unit', variables.id] });
     },
+  });
+};
+
+// Assessor Guide
+export const useUploadAssessorGuide = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      assessor_guide_file: string; // File path or content
+      unit_code: string;
+    }) => {
+      const response = await api.post<ApiResponse<any>>('/study-guides/assessor-guide', data);
+      return response.data;
+    },
+  });
+};
+
+export const useAssessorGuideStatus = (unitId: string) => {
+  return useQuery({
+    queryKey: ['assessor-guide-status', unitId],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<any>>(`/study-guides/assessor-guide/${unitId}/status`);
+      return response.data.data;
+    },
+    enabled: !!unitId,
   });
 };
 
@@ -133,11 +170,11 @@ export const useGenerateAssessment = () => {
     mutationFn: async (data: {
       unit_id: string;
       type: string;
-      question_type?: string;
+      q_type?: string;
       include_pc?: boolean;
       include_pe?: boolean;
       include_ke?: boolean;
-      suggestion?: string;
+      custom_suggestion?: string;
     }) => {
       const response = await api.post<ApiResponse<{ text: string }>>('/assessments/generate', data);
       return response.data;

@@ -32,21 +32,21 @@ const DashboardPage = () => {
     },
     {
       title: 'Assessments Generated',
-      value: '0', // Placeholder
+      value: '0', // Placeholder - you can add API call for this
       icon: FileText,
       color: 'text-secondary-600',
       bgColor: 'bg-secondary-100',
     },
     {
       title: 'Study Guides',
-      value: '0', // Placeholder
+      value: '0', // Placeholder - you can add API call for this
       icon: BookOpen,
       color: 'text-accent-600',
       bgColor: 'bg-accent-100',
     },
     {
       title: 'Presentations',
-      value: '0', // Placeholder
+      value: '0', // Placeholder - you can add API call for this
       icon: Presentation,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
@@ -162,6 +162,12 @@ const DashboardPage = () => {
                   <div className="p-8 text-center text-gray-500">
                     <BookOpen className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                     <p>No units found. Create your first unit to get started.</p>
+                    <Button className="mt-4" asChild>
+                      <Link href="/units/add">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Unit
+                      </Link>
+                    </Button>
                   </div>
                 )}
               </CardContent>
