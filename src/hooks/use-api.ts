@@ -75,30 +75,6 @@ export const useUpdateUnit = () => {
   });
 };
 
-// Assessor Guide
-export const useUploadAssessorGuide = () => {
-  return useMutation({
-    mutationFn: async (data: {
-      unit_id: string;
-      assessor_guide_file: string; // File path or content
-      unit_code: string;
-    }) => {
-      const response = await api.post<ApiResponse<any>>('/study-guides/assessor-guide', data);
-      return response.data;
-    },
-  });
-};
-
-export const useAssessorGuideStatus = (unitId: string) => {
-  return useQuery({
-    queryKey: ['assessor-guide-status', unitId],
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<any>>(`/study-guides/assessor-guide/${unitId}/status`);
-      return response.data.data;
-    },
-    enabled: !!unitId,
-  });
-};
 
 // Users
 export const useUsers = (page: number = 0, limit: number = 10) => {
@@ -294,6 +270,79 @@ export const usePresentation = (unitId: string) => {
     queryKey: ['presentation', unitId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<Presentation>>(`/presentations/${unitId}/beamer`);
+      return response.data.data;
+    },
+    enabled: !!unitId,
+  });
+};
+
+export const useFetchUnitDetails = () => {
+  return useMutation({
+    mutationFn: async (unitCode: string) => {
+      const response = await api.get<ApiResponse<{
+        unit_code: string;
+        unit_title: string;
+        competency: string;
+        domain: string;
+        unit_elements: Array<{
+          element: string;
+          criterias: string[];
+        }>;
+        unit_performance_evidences: Array<{
+          evidence: string;
+          subtopics: string[];
+        }>;
+        unit_knowledges: Array<{
+          topic: string;
+          subtopics: string[];
+        }>;
+      }>>(`/unit-details/${unitCode}`);
+      return response.data;
+    },
+  });
+};
+
+// Assessor Guide Upload Hook
+export const useUploadAssessorGuide = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      assessor_guide_file: File;
+      unit_id: string;
+      unit_code: string;
+    }) => {
+      const formData = new FormData();
+      formData.append('assessor_guide_file', data.assessor_guide_file);
+      formData.append('unit_id', data.unit_id);
+      formData.append('unit_code', data.unit_code);
+
+      const response = await api.post<ApiResponse<{
+        total_chunks: number;
+        unit_id: string;
+        has_embeddings: boolean;
+        expected_chunks: number;
+        metadata_structure_ok: boolean;
+      }>>('/study-guides/assessor-guide', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+  });
+};
+
+// Assessor Guide Status Hook
+export const useAssessorGuideStatus = (unitId: string) => {
+  return useQuery({
+    queryKey: ['assessor-guide-status', unitId],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        total_chunks: number;
+        unit_id: string;
+        has_embeddings: boolean;
+        expected_chunks: number;
+        metadata_structure_ok: boolean;
+      }>>(`/study-guides/assessor-guide/${unitId}/status`);
       return response.data.data;
     },
     enabled: !!unitId,
