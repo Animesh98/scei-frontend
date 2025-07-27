@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import type { Domain } from '@/types';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -84,7 +85,12 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 relative">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center space-y-6 pb-8">
           <LoginLogo domain={formData.domain} />

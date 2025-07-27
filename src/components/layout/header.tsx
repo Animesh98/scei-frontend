@@ -54,8 +54,8 @@ const Header = ({
   // Logo component that falls back to text if image not available
   const LogoComponent = ({ className }: { className?: string }) => {
     const logoPath = user?.domain === 'scei-he' 
-      ? '/images/logos/scei-he-logo.png' 
-      : '/images/logos/scei-logo.png';
+      ? '/images/logos/scei-he-login-logo.png' 
+      : '/images/logos/scei-login-logo.png';
 
     if (logoError) {
       // Fallback to text logo
@@ -87,7 +87,7 @@ const Header = ({
       {/* Main Header */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Left Section - Logo and Navigation */}
+          {/* Left Section - Navigation */}
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
@@ -98,25 +98,12 @@ const Header = ({
               <Menu className="h-5 w-5" />
             </Button>
             
-            {/* Logo Section */}
-            <div className="flex items-center space-x-3">
-              <LogoComponent />
-              <div className="flex flex-col">
-                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                  {user?.domain === 'scei-he' ? 'SCEI Higher Education' : 'Southern Cross Education Institute'}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Unit Management System
-                </span>
-              </div>
-            </div>
-            
             {showBackButton && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
-                className="hidden sm:flex ml-4"
+                className="hidden sm:flex"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -126,19 +113,19 @@ const Header = ({
           
           {/* Right Section - Actions */}
           <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <ThemeToggle />
-            </div>
             {actions && (
               <div className="flex items-center space-x-2">
                 {actions}
               </div>
             )}
+            <div className="flex items-center">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
         
         {/* Title Section */}
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>
           {subtitle && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>

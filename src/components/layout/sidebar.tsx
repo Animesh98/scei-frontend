@@ -52,14 +52,13 @@ const Sidebar = () => {
   // Logo component that falls back to text if image not available
   const LogoComponent = ({ className }: { className?: string }) => {
     const logoPath = user?.domain === 'scei-he' 
-      ? '/images/logos/scei-he-logo.png' 
-      : '/images/logos/scei-logo.png';
-
+      ? '/images/logos/scei-he-login-logo.png' 
+      : '/images/logos/scei-login-logo.png';
     if (logoError) {
       // Fallback to text logo
       return (
-        <div className={cn("w-10 h-10 bg-primary-800 rounded flex items-center justify-center", className)}>
-          <span className="text-white font-bold text-sm">
+        <div className={cn("w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg", className)}>
+          <span className="text-white font-bold text-2xl">
             {user?.domain === 'scei-he' ? 'HE' : 'SC'}
           </span>
         </div>
@@ -67,13 +66,13 @@ const Sidebar = () => {
     }
 
     return (
-      <div className={cn("w-10 h-10 rounded overflow-hidden bg-white", className)}>
+      <div className={cn("w-16 h-16 rounded-xl overflow-hidden bg-white dark:bg-gray-100 shadow-lg border-2 border-gray-200 dark:border-gray-700", className)}>
         <Image
           src={logoPath}
           alt={user?.domain === 'scei-he' ? 'SCEI HE Logo' : 'SCEI Logo'}
-          width={40}
-          height={40}
-          className="w-full h-full object-contain"
+          width={64}
+          height={64}
+          className="w-full h-full object-contain p-2"
           onError={() => setLogoError(true)}
         />
       </div>
@@ -97,15 +96,16 @@ const Sidebar = () => {
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <LogoComponent />
-              <div>
-                <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-                  {user?.domain === 'scei-he' ? 'SCEI HE' : 'SCEI'}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Education Institute</p>
+            <Link 
+              href="/dashboard" 
+              className="flex items-center justify-center hover:scale-105 transition-all duration-200 group"
+              title="Back to Dashboard"
+            >
+              <div className="relative">
+                <LogoComponent className="w-16 h-16 group-hover:shadow-lg transition-shadow duration-200" />
+                <div className="absolute inset-0 bg-blue-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10"></div>
               </div>
             </Link>
             <Button
@@ -127,7 +127,7 @@ const Sidebar = () => {
             onClick={() => setSidebarOpen(false)}
             className={cn(
               "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
-              isActive('/dashboard') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
+              isActive('/dashboard') ? "bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white font-semibold" : "text-gray-700 dark:text-gray-300"
             )}
           >
             <Home className="h-4 w-4" />
@@ -140,7 +140,7 @@ const Sidebar = () => {
               onClick={() => setUnitsExpanded(!unitsExpanded)}
               className={cn(
                 "flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
-                pathname.startsWith('/units') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
+                pathname.startsWith('/units') ? "bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white font-semibold" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <div className="flex items-center space-x-2">
@@ -163,7 +163,7 @@ const Sidebar = () => {
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       "flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
-                      isActive(item.href) ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-600 dark:text-gray-400"
+                      isActive(item.href) ? "bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white font-semibold" : "text-gray-600 dark:text-gray-400"
                     )}
                   >
                     <item.icon className="h-4 w-4" />
@@ -181,7 +181,7 @@ const Sidebar = () => {
               onClick={() => setSidebarOpen(false)}
               className={cn(
                 "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
-                isActive('/users') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
+                isActive('/users') ? "bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white font-semibold" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <Users className="h-4 w-4" />
