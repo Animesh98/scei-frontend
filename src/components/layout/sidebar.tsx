@@ -92,20 +92,20 @@ const Sidebar = () => {
       
       {/* Sidebar */}
       <div className={cn(
-        "fixed left-0 top-0 h-full bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out",
+        "fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 z-50 transform transition-transform duration-300 ease-in-out",
         "w-64 lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <LogoComponent />
               <div>
-                <h2 className="font-semibold text-gray-900">
+                <h2 className="font-semibold text-gray-900 dark:text-gray-100">
                   {user?.domain === 'scei-he' ? 'SCEI HE' : 'SCEI'}
                 </h2>
-                <p className="text-xs text-gray-500">Education Institute</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Education Institute</p>
               </div>
             </Link>
             <Button
@@ -124,9 +124,10 @@ const Sidebar = () => {
           {/* Dashboard */}
           <Link
             href="/dashboard"
+            onClick={() => setSidebarOpen(false)}
             className={cn(
-              "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors",
-              isActive('/dashboard') ? "bg-primary-50 text-primary-800" : "text-gray-700"
+              "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+              isActive('/dashboard') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
             )}
           >
             <Home className="h-4 w-4" />
@@ -138,8 +139,8 @@ const Sidebar = () => {
             <button
               onClick={() => setUnitsExpanded(!unitsExpanded)}
               className={cn(
-                "flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md hover:bg-gray-100 transition-colors",
-                pathname.startsWith('/units') ? "bg-primary-50 text-primary-800" : "text-gray-700"
+                "flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+                pathname.startsWith('/units') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <div className="flex items-center space-x-2">
@@ -159,9 +160,10 @@ const Sidebar = () => {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 transition-colors",
-                      isActive(item.href) ? "bg-primary-50 text-primary-800" : "text-gray-600"
+                      "flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+                      isActive(item.href) ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-600 dark:text-gray-400"
                     )}
                   >
                     <item.icon className="h-4 w-4" />
@@ -176,9 +178,10 @@ const Sidebar = () => {
           {user?.isAdmin && (
             <Link
               href="/users"
+              onClick={() => setSidebarOpen(false)}
               className={cn(
-                "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors",
-                isActive('/users') ? "bg-primary-50 text-primary-800" : "text-gray-700"
+                "flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+                isActive('/users') ? "bg-primary-50 dark:bg-primary-900 text-primary-800 dark:text-primary-200" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <Users className="h-4 w-4" />
@@ -188,26 +191,26 @@ const Sidebar = () => {
         </nav>
 
         {/* User Info & Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-700">
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={logout}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               title="Logout"
             >
               <LogOut className="h-4 w-4" />

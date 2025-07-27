@@ -2,16 +2,19 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/types';
 import api from '@/lib/api';
+import { AZURE_FUNCTIONS_KEY } from '@/constants';
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isHydrated: boolean;
   login: (user: User, token: string) => void;
   loginWithCredentials: (email: string, password: string, selectedDomain: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
+  setHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,6 +24,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      isHydrated: false,
 
       login: (user, token) => {
         set({
@@ -40,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
           }, {
             headers: {
               domain: selectedDomain,
+              'x-functions-key': AZURE_FUNCTIONS_KEY,
             },
           });
 
@@ -91,9 +96,18 @@ export const useAuthStore = create<AuthState>()(
           });
         }
       },
+
+      setHydrated: () => {
+        set({ isHydrated: true });
+      },
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHydrated();
+        }
+      },
     }
   )
 );

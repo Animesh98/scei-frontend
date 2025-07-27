@@ -61,8 +61,8 @@ const LoginPage = () => {
 
     if (logoError) {
       return (
-        <div className="w-16 h-16 bg-primary-800 rounded-lg flex items-center justify-center mx-auto">
-          <span className="text-white font-bold text-xl">
+        <div className="w-32 h-32 bg-primary-800 rounded-xl flex items-center justify-center mx-auto shadow-lg">
+          <span className="text-white font-bold text-3xl">
             {domain === 'scei-he' ? 'HE' : 'SC'}
           </span>
         </div>
@@ -70,12 +70,12 @@ const LoginPage = () => {
     }
 
     return (
-      <div className="w-16 h-16 mx-auto">
+      <div className="w-32 h-32 mx-auto bg-white rounded-xl shadow-lg p-4 flex items-center justify-center">
         <Image
           src={logoPath}
           alt={domain === 'scei-he' ? 'SCEI HE Logo' : 'SCEI Logo'}
-          width={64}
-          height={64}
+          width={128}
+          height={128}
           className="w-full h-full object-contain"
           onError={() => setLogoError(true)}
         />
@@ -84,15 +84,15 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader className="text-center space-y-6 pb-8">
           <LoginLogo domain={formData.domain} />
           <div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {formData.domain === 'scei-he' ? 'SCEI Higher Education' : 'Southern Cross Education Institute'}
             </CardTitle>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
           </div>
         </CardHeader>
         
@@ -180,7 +180,7 @@ const LoginPage = () => {
           </form>
 
           {/* Footer */}
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
             <p>Welcome to the Unit Management System</p>
             <p className="mt-1">
               {formData.domain === 'scei-he' ? 'SCEI Higher Education' : 'Southern Cross Education Institute'}

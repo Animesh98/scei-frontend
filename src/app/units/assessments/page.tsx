@@ -11,14 +11,24 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import UnitSelector from '@/components/ui/unit-selector';
+import MarkdownRenderer from '@/components/ui/markdown-renderer';
 import { useUnits, useGenerateAssessment, useSaveAssessment, useAssessmentTypes, useAssessment } from '@/hooks/use-api';
 import { useUIStore } from '@/store/ui-store';
 import { generateSessionKey } from '@/lib/utils';
+import { 
+  parseAssessmentContent, 
+  formatAssessmentContent, 
+  saveAssessmentToHistory, 
+  getFilteredAssessmentHistory,
+  formatTimestamp,
+  type AssessmentHistoryItem 
+} from '@/lib/assessment-utils';
 import { ASSESSMENT_TYPES, QUESTION_TYPES } from '@/constants';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import EmptyState from '@/components/ui/empty-state';
-import { FileText, Download, Save, RefreshCw, Settings } from 'lucide-react';
+import { FileText, Download, Save, RefreshCw, Settings, History, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CheckedState } from '@radix-ui/react-checkbox';
 
@@ -31,6 +41,9 @@ const AssessmentsPage = () => {
   const [selectedQuestionType, setSelectedQuestionType] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
   const [customSuggestion, setCustomSuggestion] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [assessmentHistory, setAssessmentHistory] = useState<AssessmentHistoryItem[]>([]);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<string | null>(null);
   
   // Component selection for SCEI
   const [includePC, setIncludePC] = useState(true);
@@ -74,6 +87,12 @@ const AssessmentsPage = () => {
     }
   }, [selectedUnit, selectedAssessmentType, selectedQuestionType, existingAssessment, getSessionData]);
 
+  // Load assessment history when unit or assessment type changes
+  useEffect(() => {
+    const history = getFilteredAssessmentHistory(selectedUnit, selectedAssessmentType);
+    setAssessmentHistory(history);
+  }, [selectedUnit, selectedAssessmentType]);
+
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnit(unitId);
     setGeneratedContent('');
@@ -93,13 +112,29 @@ const AssessmentsPage = () => {
       return;
     }
 
+    // Check if unit exists in the current units list
+    const selectedUnitData = unitsData?.rows?.find(u => u.id === selectedUnit);
+    if (!selectedUnitData) {
+      toast.error('Selected unit not found. Please refresh and try again.');
+      return;
+    }
+
+    console.log('Generating assessment for unit:', {
+      id: selectedUnit,
+      code: selectedUnitData.unit_code,
+      title: selectedUnitData.unit_title,
+      assessmentType: selectedAssessmentType,
+      questionType: selectedQuestionType
+    });
+
     const sessionKey = generateSessionKey(selectedUnit, selectedAssessmentType, selectedQuestionType);
 
     try {
       const data: any = {
         unit_id: selectedUnit,
         type: selectedAssessmentType,
-        custom_suggestion: customSuggestion,
+        suggestion: customSuggestion,
+        text: generatedContent || '', // Add the current assessment text
       };
 
       if (selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING) {
@@ -107,7 +142,10 @@ const AssessmentsPage = () => {
           toast.error('Please select a question type');
           return;
         }
-        data.q_type = selectedQuestionType;
+        data.question_type = selectedQuestionType;
+        // Component filtering is ignored for questioning assessments (handled in API hook)
+      } else {
+        // Component filtering only applies to non-questioning assessments
         data.include_pc = includePC;
         data.include_pe = includePE;
         data.include_ke = includeKE;
@@ -116,6 +154,7 @@ const AssessmentsPage = () => {
       const result = await generateMutation.mutateAsync(data);
       
       if (result.status) {
+        // The API returns data.text as a JSON string that needs to be parsed
         let content = result.data?.text || '';
         
         setGeneratedContent(content);
@@ -124,11 +163,41 @@ const AssessmentsPage = () => {
         if (sessionKey) {
           setSessionData(sessionKey, content);
         }
+
+        // Save to history (selectedUnitData already defined above)
+        if (selectedUnitData) {
+          const historyId = saveAssessmentToHistory(
+            selectedUnit,
+            selectedUnitData.unit_code,
+            selectedUnitData.unit_title,
+            selectedAssessmentType,
+            selectedQuestionType,
+            content,
+            customSuggestion
+          );
+          
+          // Refresh history
+          const updatedHistory = getFilteredAssessmentHistory(selectedUnit, selectedAssessmentType);
+          setAssessmentHistory(updatedHistory);
+        }
         
         toast.success('Assessment generated successfully!');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to generate assessment');
+      console.error('Assessment generation error:', error);
+      let errorMessage = 'Failed to generate assessment';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Unit or assessment type not found.';
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -159,6 +228,33 @@ const AssessmentsPage = () => {
 
   const isQuestioning = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING;
 
+  // Helper functions for history
+  const handleSelectHistoryItem = (item: AssessmentHistoryItem) => {
+    const formattedContent = formatAssessmentContent(item.parsedContent);
+    setGeneratedContent(formattedContent);
+    setSelectedHistoryItem(item.id);
+    setShowHistory(false);
+    toast.success('Assessment loaded from history');
+  };
+
+  const handleDeleteHistoryItem = (id: string) => {
+    // Implementation would go here if needed
+    const updatedHistory = getFilteredAssessmentHistory(selectedUnit, selectedAssessmentType);
+    setAssessmentHistory(updatedHistory);
+  };
+
+  // Parse and format content for display
+  const getDisplayContent = () => {
+    if (!generatedContent) return '';
+    
+    try {
+      const parsed = parseAssessmentContent(generatedContent);
+      return formatAssessmentContent(parsed);
+    } catch {
+      return generatedContent;
+    }
+  };
+
   return (
     <AuthGuard>
       <MainLayout 
@@ -173,8 +269,8 @@ const AssessmentsPage = () => {
             <CardHeader>
               <CardTitle>Assessment Configuration</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* Enhanced Unit Selector */}
                 <UnitSelector
                   units={unitsData?.rows || []}
@@ -218,13 +314,17 @@ const AssessmentsPage = () => {
                       <SelectItem value={QUESTION_TYPES.COMPARISON_ANALYSIS}>Comparison & Analysis Questions</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-gray-600">
+                    <strong>Note:</strong> Questioning assessments automatically include all components (PC, PE, KE) and generate 5 questions of the selected type.
+                  </p>
                 </div>
               )}
 
-              {/* Component Selection for SCEI Questioning */}
-              {isQuestioning && (
+              {/* Component Selection for Non-Questioning Assessments */}
+              {!isQuestioning && selectedAssessmentType && (
                 <div className="space-y-3">
                   <Label>Include Components</Label>
+                  <p className="text-sm text-gray-600">Select which components to include in the assessment generation:</p>
                   <div className="flex flex-wrap gap-4">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -256,13 +356,16 @@ const AssessmentsPage = () => {
 
               {/* Custom Suggestion */}
               <div className="space-y-2">
-                <Label>Custom Suggestion (Optional)</Label>
+                <Label>Custom Instructions (Optional)</Label>
                 <Textarea
-                  placeholder="Add any specific requirements or focus areas for the assessment..."
+                  placeholder="Add any specific requirements or focus areas for the assessment (e.g., 'Focus on workplace safety scenarios', 'Include case study components')..."
                   value={customSuggestion}
                   onChange={(e) => setCustomSuggestion(e.target.value)}
                   rows={3}
                 />
+                <p className="text-xs text-gray-500">
+                  These instructions will be added to the generation prompt to customize the assessment content.
+                </p>
               </div>
 
               {/* Generate Button */}
@@ -286,18 +389,82 @@ const AssessmentsPage = () => {
             </CardContent>
           </Card>
 
+          {/* Assessment History */}
+          {assessmentHistory.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <History className="h-5 w-5" />
+                    <span>Assessment History ({assessmentHistory.length})</span>
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHistory(!showHistory)}
+                  >
+                    {showHistory ? 'Hide History' : 'Show History'}
+                  </Button>
+                </div>
+              </CardHeader>
+              {showHistory && (
+                <CardContent className="p-3 sm:p-4 lg:p-6">
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {assessmentHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`border rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-50 ${
+                          selectedHistoryItem === item.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                        }`}
+                        onClick={() => handleSelectHistoryItem(item)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {item.unitCode}
+                              </span>
+                              {item.questionType && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.questionType.replace(/_/g, ' ')}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 truncate mb-1">
+                              {item.unitTitle}
+                            </p>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {formatTimestamp(item.timestamp)}
+                            </div>
+                          </div>
+                        </div>
+                        {item.customSuggestion && (
+                          <div className="mt-2 text-xs text-gray-600 bg-gray-100 rounded p-2">
+                            <strong>Custom:</strong> {item.customSuggestion}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
           {/* Generated Content */}
           {generatedContent && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Generated Assessment</CardTitle>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleSave}
                       disabled={saveMutation.isPending}
+                      className="w-full sm:w-auto"
                     >
                       {saveMutation.isPending ? (
                         <>
@@ -314,11 +481,12 @@ const AssessmentsPage = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800">
-                    {generatedContent}
-                  </pre>
+              <CardContent className="p-3 sm:p-4 lg:p-6">
+                <div className="bg-white rounded-lg border p-3 sm:p-4">
+                  <MarkdownRenderer 
+                    content={getDisplayContent()} 
+                    className="text-gray-800"
+                  />
                 </div>
               </CardContent>
             </Card>

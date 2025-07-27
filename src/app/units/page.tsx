@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useUnits } from '@/hooks/use-api';
+import { useAllUnits } from '@/hooks/use-api';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import EmptyState from '@/components/ui/empty-state';
 import { 
@@ -44,14 +44,39 @@ const UnitsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const limit = 10;
-  const { data: unitsData, isLoading } = useUnits(page, limit);
+  const { data: allUnitsData, isLoading } = useAllUnits();
 
-  const filteredUnits = unitsData?.rows?.filter(unit =>
+  // Client-side search and pagination
+  const { filteredUnits, paginatedUnits, totalPages, totalCount } = useMemo(() => {
+    const allUnits = allUnitsData?.rows || [];
+    
+    // Filter units based on search term
+    const filtered = searchTerm
+      ? allUnits.filter(unit =>
     unit.unit_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     unit.unit_title?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+        )
+      : allUnits;
 
-  const totalPages = Math.ceil((unitsData?.count || 0) / limit);
+    // Calculate pagination for filtered results
+    const totalPages = Math.ceil(filtered.length / limit);
+    const startIndex = page * limit;
+    const endIndex = startIndex + limit;
+    const paginated = filtered.slice(startIndex, endIndex);
+
+    return {
+      filteredUnits: filtered,
+      paginatedUnits: paginated,
+      totalPages,
+      totalCount: filtered.length
+    };
+  }, [allUnitsData?.rows, searchTerm, page, limit]);
+
+  // Reset page when search term changes
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(0);
+  };
 
   if (isLoading) {
     return (
@@ -94,7 +119,7 @@ const UnitsPage = () => {
               <Input
                 placeholder="Search units..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -105,16 +130,22 @@ const UnitsPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <BookOpen className="h-5 w-5" />
-                <span>Units ({unitsData?.count || 0})</span>
+                <span>
+                  {searchTerm ? (
+                    <>Search Results ({totalCount})</>
+                  ) : (
+                    <>All Units ({allUnitsData?.count || 0})</>
+                  )}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {filteredUnits.length === 0 ? (
+              {paginatedUnits.length === 0 ? (
                 <div className="p-8">
                   <EmptyState
                     icon={<BookOpen />}
-                    title="No units found"
-                    description={searchTerm ? "Try adjusting your search terms" : "Get started by creating your first unit"}
+                    title={searchTerm ? "No units found" : "No units available"}
+                    description={searchTerm ? "No units match your search criteria. Try adjusting your search terms." : "Get started by creating your first unit"}
                     action={
                       !searchTerm
                         ? {
@@ -141,7 +172,7 @@ const UnitsPage = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredUnits.map((unit) => (
+                        {paginatedUnits.map((unit) => (
                           <TableRow key={unit.id} className="hover:bg-gray-50">
                             <TableCell className="font-medium">
                               {unit.unit_code}
@@ -201,7 +232,7 @@ const UnitsPage = () => {
 
                   {/* Mobile Cards */}
                   <div className="md:hidden space-y-4 p-4">
-                    {filteredUnits.map((unit) => (
+                    {paginatedUnits.map((unit) => (
                       <Card key={unit.id} className="p-4">
                         <div className="space-y-3">
                           <div className="flex justify-between items-start">
@@ -249,7 +280,8 @@ const UnitsPage = () => {
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between px-4 py-4 border-t">
                       <div className="text-sm text-gray-500">
-                        Showing {page * limit + 1} to {Math.min((page + 1) * limit, unitsData?.count || 0)} of {unitsData?.count || 0} units
+                        Showing {page * limit + 1} to {Math.min((page + 1) * limit, totalCount)} of {totalCount} units
+                        {searchTerm && <span className="ml-1">(filtered from {allUnitsData?.count || 0} total)</span>}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button

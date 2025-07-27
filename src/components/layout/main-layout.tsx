@@ -44,7 +44,7 @@ const MainLayout = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       
       {/* Main content */}
@@ -57,8 +57,8 @@ const MainLayout = ({
           breadcrumbs={breadcrumbs}
           actions={actions}
         />
-        <main className="p-6">
-          <div className={`mx-auto ${maxWidthClasses[maxWidth]}`}>
+        <main className="p-2 sm:p-4 lg:p-6">
+          <div className={`mx-auto ${maxWidthClasses[maxWidth]} min-w-0`}>
             {children}
           </div>
         </main>

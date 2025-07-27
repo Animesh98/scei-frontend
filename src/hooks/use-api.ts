@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth-store';
 import { 
   Unit, 
   User, 
@@ -30,6 +31,20 @@ export const useUnits = (page: number = 0, limit: number = 10) => {
       const response = await api.get<ApiResponse<PaginatedResponse<Unit>>>(`/units?page=${page}&limit=${limit}`);
       return response.data.data;
     },
+  });
+};
+
+// Hook to fetch all units (for search functionality)
+export const useAllUnits = () => {
+  return useQuery({
+    queryKey: ['units', 'all'],
+    queryFn: async () => {
+      // Fetch with a high limit to get all units
+      const response = await api.get<ApiResponse<PaginatedResponse<Unit>>>(`/units?page=0&limit=10000`);
+      return response.data.data;
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 };
 
@@ -146,14 +161,73 @@ export const useGenerateAssessment = () => {
     mutationFn: async (data: {
       unit_id: string;
       type: string;
-      q_type?: string;
+      question_type?: string;
       include_pc?: boolean;
       include_pe?: boolean;
       include_ke?: boolean;
-      custom_suggestion?: string;
+      suggestion?: string;
+      text?: string;
     }) => {
-      const response = await api.post<ApiResponse<{ text: string }>>('/assessments/generate', data);
-      return response.data;
+      const isQuestioningType = data.type === '6703c26d78548ed67f9862a6';
+      
+      // Validate authentication state
+      const { user, token } = useAuthStore.getState();
+      if (!user || !token) {
+        throw new Error('User not authenticated. Please login again.');
+      }
+      
+      console.log('User authentication state:', {
+        userExists: !!user,
+        tokenExists: !!token,
+        domain: user?.domain,
+        tokenLength: token?.length
+      });
+      
+      // Prepare request data based on assessment type
+      const requestData: any = {
+        unit_id: data.unit_id,
+        type: data.type,
+        suggestion: data.suggestion || '',
+        text: data.text || ''
+      };
+
+      if (isQuestioningType) {
+        // Questioning assessment - requires question_type, ignores component filtering
+        if (!data.question_type) {
+          throw new Error('Question type is required for questioning assessments');
+        }
+        requestData.question_type = data.question_type;
+      } else {
+        // Non-questioning assessment - uses component filtering, ignores question_type
+        requestData.include_pc = data.include_pc ?? true;
+        requestData.include_pe = data.include_pe ?? true;
+        requestData.include_ke = data.include_ke ?? true;
+      }
+
+      console.log('Sending assessment generation request:', requestData);
+      
+      try {
+        const response = await api.post<ApiResponse<{ text: string }>>('/assessments/generate', requestData);
+        console.log('Assessment generation response:', response.data);
+        
+        // Check if response indicates success but no content
+        if (response.data.status && (!response.data.data || !response.data.data.text)) {
+          console.warn('API returned success but no content:', response.data);
+          throw new Error('Assessment generation returned empty content. This may indicate an issue with the unit ID or assessment type combination.');
+        }
+        
+        return response.data;
+      } catch (error: any) {
+        console.error('Assessment generation failed:', error);
+        if (error.response?.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        } else if (error.response?.status === 404) {
+          throw new Error('Unit or assessment type not found. Please verify the selection.');
+        } else if (error.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        throw error;
+      }
     },
   });
 };

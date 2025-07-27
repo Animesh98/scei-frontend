@@ -451,7 +451,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="w-full mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Validation Alert */}
       {!canSubmit() && (
         <Alert>
@@ -463,13 +463,39 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
       )}
 
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger value="elements">Elements</TabsTrigger>
-          <TabsTrigger value="performance">Performance Evidence</TabsTrigger>
-          <TabsTrigger value="knowledge">Knowledge Evidence</TabsTrigger>
-          {isHE && <TabsTrigger value="outcomes">Learning Outcomes</TabsTrigger>}
-          <TabsTrigger value="assessor">Assessor Guide</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted rounded-lg">
+          <TabsTrigger value="basic" className="flex-shrink-0 text-xs sm:text-sm">
+            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Basic Info</span>
+            <span className="sm:hidden">Basic</span>
+          </TabsTrigger>
+          <TabsTrigger value="elements" className="flex-shrink-0 text-xs sm:text-sm">
+            <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Elements</span>
+            <span className="sm:hidden">Elements</span>
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex-shrink-0 text-xs sm:text-sm">
+            <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Performance</span>
+            <span className="sm:hidden">Perf</span>
+          </TabsTrigger>
+          <TabsTrigger value="knowledge" className="flex-shrink-0 text-xs sm:text-sm">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Knowledge</span>
+            <span className="sm:hidden">Know</span>
+          </TabsTrigger>
+          {isHE && (
+            <TabsTrigger value="outcomes" className="flex-shrink-0 text-xs sm:text-sm">
+              <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Outcomes</span>
+              <span className="sm:hidden">Out</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="assessor" className="flex-shrink-0 text-xs sm:text-sm">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Assessor Guide</span>
+            <span className="sm:hidden">Guide</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Basic Information Tab */}
@@ -481,8 +507,8 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
                 <span>Basic Information</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <CardContent className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-end">
                 <div className="space-y-2">
                   <Label htmlFor="unit_code">Unit Code *</Label>
                   <Input
@@ -516,7 +542,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
                     variant="outline"
                     onClick={handleFetchUnit}
                     disabled={!basicData.unit_code.trim() || fetchUnitMutation.isPending}
-                    className="w-full"
+                    className="w-full text-xs sm:text-sm"
                   >
                     {fetchUnitMutation.isPending ? (
                       <>
@@ -1043,18 +1069,19 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
       </Tabs>
 
       {/* Submit Button */}
-      <div className="flex justify-end mt-6 space-x-4">
+      <div className="flex flex-col sm:flex-row justify-end mt-6 gap-3 sm:gap-4">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
+          className="w-full sm:w-auto"
         >
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
           disabled={isSubmitting || !canSubmit()}
-          className="min-w-32"
+          className="w-full sm:w-auto sm:min-w-32"
         >
           {isSubmitting ? (
             <>

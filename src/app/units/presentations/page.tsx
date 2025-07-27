@@ -278,7 +278,7 @@ const PresentationsPage = () => {
             <Card>
               <CardContent className="p-8">
                 <EmptyState
-                  icon={Presentation}
+                  icon={<Presentation />}
                   title="Ready to Generate"
                   description="Click the generate button above to create professional presentation slides for this unit."
                 />
@@ -290,7 +290,7 @@ const PresentationsPage = () => {
             <Card>
               <CardContent className="p-8">
                 <EmptyState
-                  icon={Presentation}
+                  icon={<Presentation />}
                   title="Select a Unit"
                   description="Choose a unit from the dropdown above to get started with presentation generation."
                 />

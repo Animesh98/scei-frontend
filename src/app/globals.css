@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222.2 84% 4.9%;
@@ -22,8 +22,38 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -45,11 +75,149 @@
   background: #f1f5f9;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Custom responsive utilities */
+@layer utilities {
+  /* Responsive text sizing */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-lg {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  /* Responsive padding */
+  .p-responsive {
+    @apply p-2 sm:p-4 lg:p-6;
+  }
+  
+  .px-responsive {
+    @apply px-2 sm:px-4 lg:px-6;
+  }
+  
+  .py-responsive {
+    @apply py-2 sm:py-4 lg:py-6;
+  }
+
+  /* Responsive spacing */
+  .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
+    @apply space-y-2 sm:space-y-4;
+  }
+  
+  .gap-responsive {
+    @apply gap-2 sm:gap-4;
+  }
+
+  /* Form responsive utilities */
+  .form-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .form-button-group {
+    @apply flex flex-col sm:flex-row justify-end;
+  }
+
+  /* Card responsive padding */
+  .card-content-responsive {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
+  /* Button responsive sizing */
+  .btn-responsive {
+    @apply w-full sm:w-auto;
+  }
+  
+  /* Text overflow handling for mobile */
+  .text-mobile-safe {
+    @apply break-words hyphens-auto;
+  }
+
+  /* Responsive flex layouts */
+  .flex-responsive {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  /* Tab responsive styling */
+  .tabs-responsive {
+    @apply flex flex-wrap gap-1 h-auto p-1;
+  }
+  
+  .tab-trigger-responsive {
+    @apply flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2;
+  }
+
+  /* Markdown content specific styles */
+  .markdown-content {
+    /* Proper list indentation */
+    ul, ol {
+      @apply my-2;
+    }
+    
+    li {
+      @apply mb-1;
+    }
+    
+    /* Nested lists */
+    li > ul,
+    li > ol {
+      @apply mt-1 mb-1;
+    }
+    
+    /* Better spacing for nested content */
+    li > p {
+      @apply mb-1;
+    }
+    
+    /* Ensure proper alignment for list markers */
+    ul {
+      list-style-position: outside;
+      padding-left: 1.25rem;
+    }
+    
+    ol {
+      list-style-position: outside;
+      padding-left: 1.25rem;
+    }
+    
+    /* Nested list indentation */
+    ul ul,
+    ol ol,
+    ul ol,
+    ol ul {
+      @apply ml-4 mt-1;
+    }
+  }
 }

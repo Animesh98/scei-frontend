@@ -11,10 +11,13 @@ interface AuthGuardProps {
 }
 
 const AuthGuard = ({ children, requireAdmin = false }: AuthGuardProps) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isHydrated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    // Don't redirect until store is hydrated
+    if (!isHydrated) return;
+
     if (!isAuthenticated) {
       router.push('/login');
       return;
@@ -24,7 +27,16 @@ const AuthGuard = ({ children, requireAdmin = false }: AuthGuardProps) => {
       router.push('/dashboard');
       return;
     }
-  }, [isAuthenticated, user, requireAdmin, router]);
+  }, [isAuthenticated, user, requireAdmin, router, isHydrated]);
+
+  // Show loading while store is hydrating
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

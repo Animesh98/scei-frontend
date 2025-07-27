@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuthStore } from '@/store/auth-store';
 import { LoginFormData, Domain } from '@/types';
 import api from '@/lib/api';
-import { DOMAINS } from '@/constants';
+import { DOMAINS, AZURE_FUNCTIONS_KEY } from '@/constants';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const loginSchema = z.object({
@@ -54,6 +54,7 @@ const LoginForm = () => {
       }, {
         headers: {
           domain: data.domain,
+          'x-functions-key': AZURE_FUNCTIONS_KEY,
         },
       });
 
