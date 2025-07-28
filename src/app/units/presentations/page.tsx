@@ -61,11 +61,15 @@ const PresentationsPage = () => {
     }
 
     try {
+      // Get user's timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
       const result = await generateMutation.mutateAsync({
         unit_id: selectedUnit,
         generation_method: generationMethod,
         theme,
         color_scheme: colorScheme,
+        timezone: userTimezone,
       });
 
       if (result.status) {
@@ -223,15 +227,15 @@ const PresentationsPage = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-green-600" />
+                    <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
                     <div>
-                      <p className="text-sm font-medium text-green-800">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
                         Presentation available for this unit
                       </p>
-                      <p className="text-xs text-green-600">
-                        Generated on {new Date(existingPresentation.generated_at).toLocaleDateString()} • 
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Generated on {new Date(existingPresentation.generated_at).toLocaleString()} • 
                         Theme: {existingPresentation.theme} • 
                         Colors: {existingPresentation.color_scheme}
                       </p>
@@ -259,11 +263,11 @@ const PresentationsPage = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <div>
-                      <p className="text-sm font-medium text-blue-800">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
                         {generatedContent}
                       </p>
                     </div>

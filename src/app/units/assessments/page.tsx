@@ -413,15 +413,15 @@ const AssessmentsPage = () => {
                     {assessmentHistory.map((item) => (
                       <div
                         key={item.id}
-                        className={`border rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-50 ${
-                          selectedHistoryItem === item.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                        className={`border rounded-lg p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                          selectedHistoryItem === item.id ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700'
                         }`}
                         onClick={() => handleSelectHistoryItem(item)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
                                 {item.unitCode}
                               </span>
                               {item.questionType && (
@@ -430,17 +430,17 @@ const AssessmentsPage = () => {
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-xs text-gray-600 truncate mb-1">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 truncate mb-1">
                               {item.unitTitle}
                             </p>
-                            <div className="flex items-center text-xs text-gray-500">
+                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                               <Clock className="h-3 w-3 mr-1" />
                               {formatTimestamp(item.timestamp)}
                             </div>
                           </div>
                         </div>
                         {item.customSuggestion && (
-                          <div className="mt-2 text-xs text-gray-600 bg-gray-100 rounded p-2">
+                          <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded p-2">
                             <strong>Custom:</strong> {item.customSuggestion}
                           </div>
                         )}

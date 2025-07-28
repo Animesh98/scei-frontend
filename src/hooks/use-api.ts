@@ -304,9 +304,11 @@ export const useGenerateStudyGuide = () => {
     mutationFn: async (data: {
       unit_id: string;
       generation_method?: string;
+      timezone?: string;
     }) => {
       const response = await api.post<ApiResponse<any>>(`/study-guides/${data.unit_id}/generate-latex`, {
         generation_method: data.generation_method,
+        timezone: data.timezone,
       });
       return response.data;
     },
@@ -332,6 +334,7 @@ export const useGeneratePresentation = () => {
       generation_method?: string;
       theme?: string;
       color_scheme?: string;
+      timezone?: string;
     }) => {
       const response = await api.post<ApiResponse<any>>(`/presentations/${data.unit_id}/generate-beamer`, data);
       return response.data;
