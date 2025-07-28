@@ -57,8 +57,8 @@ const Sidebar = () => {
     if (logoError) {
       // Fallback to text logo
       return (
-        <div className={cn("w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg", className)}>
-          <span className="text-white font-bold text-2xl">
+        <div className={cn("w-24 h-20 md:w-28 md:h-20 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-sm border border-white/20", className)}>
+          <span className="text-white font-bold text-xl md:text-2xl tracking-wide">
             {user?.domain === 'scei-he' ? 'HE' : 'SC'}
           </span>
         </div>
@@ -66,13 +66,13 @@ const Sidebar = () => {
     }
 
     return (
-      <div className={cn("w-16 h-16 rounded-xl overflow-hidden bg-white dark:bg-gray-100 shadow-lg border-2 border-gray-200 dark:border-gray-700", className)}>
+      <div className={cn("w-24 h-20 md:w-28 md:h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-white to-gray-50 dark:from-slate-100 dark:to-white shadow-xl backdrop-blur-sm border border-gray-200/50 dark:border-slate-200/20", className)}>
         <Image
           src={logoPath}
           alt={user?.domain === 'scei-he' ? 'SCEI HE Logo' : 'SCEI Logo'}
-          width={64}
-          height={64}
-          className="w-full h-full object-contain p-2"
+          width={112}
+          height={80}
+          className="w-full h-full object-contain p-3"
           onError={() => setLogoError(true)}
         />
       </div>
@@ -100,12 +100,12 @@ const Sidebar = () => {
           <div className="flex items-center justify-between">
             <Link 
               href="/dashboard" 
-              className="flex items-center justify-center hover:scale-105 transition-all duration-200 group"
+              className="flex items-center justify-center hover:scale-[1.02] transition-all duration-300 group"
               title="Back to Dashboard"
             >
               <div className="relative">
-                <LogoComponent className="w-16 h-16 group-hover:shadow-lg transition-shadow duration-200" />
-                <div className="absolute inset-0 bg-blue-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 -z-10"></div>
+                <LogoComponent className="w-24 h-20 md:w-28 md:h-20 group-hover:shadow-2xl group-hover:shadow-blue-500/25 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 -z-10 blur-xl"></div>
               </div>
             </Link>
             <Button

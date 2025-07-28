@@ -76,8 +76,8 @@ const LoginForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-800">
-            <span className="text-white font-bold text-lg">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary-800">
+            <span className="text-white font-bold text-xl">
               {selectedDomain === 'scei-he' ? 'HE' : 'SC'}
             </span>
           </div>

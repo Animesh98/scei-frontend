@@ -173,7 +173,7 @@ const UnitsPage = () => {
                       </TableHeader>
                       <TableBody>
                         {paginatedUnits.map((unit) => (
-                          <TableRow key={unit.id} className="hover:bg-gray-50">
+                          <TableRow key={unit.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <TableCell className="font-medium">
                               {unit.unit_code}
                             </TableCell>
@@ -233,7 +233,7 @@ const UnitsPage = () => {
                   {/* Mobile Cards */}
                   <div className="md:hidden space-y-4 p-4">
                     {paginatedUnits.map((unit) => (
-                      <Card key={unit.id} className="p-4">
+                      <Card key={unit.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <div className="space-y-3">
                           <div className="flex justify-between items-start">
                             <div>

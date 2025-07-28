@@ -1,4 +1,5 @@
-export const API_BASE_URL = 'https://scei-api.azurewebsites.net/api';
+// export const API_BASE_URL = 'https://scei-api.azurewebsites.net/api';
+export const API_BASE_URL = 'http://localhost:7071/api/';
 export const AZURE_FUNCTIONS_KEY = 'XSC6PaKAtp8wr-vYiBQYV0siNq1rnfSYKB9LMCpcYDMHAzFuZRhhaw==';
 
 export const DOMAINS = {

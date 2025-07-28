@@ -66,7 +66,7 @@ const DashboardPage = () => {
       lightColor: 'text-blue-600',
       darkColor: 'text-blue-400',
       lightBg: 'bg-white border border-gray-200 hover:bg-blue-50 hover:border-blue-200',
-      darkBg: 'dark:bg-gradient-to-r dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700',
+      darkBg: 'dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700',
     },
     {
       title: 'Generate Assessment',
@@ -76,7 +76,7 @@ const DashboardPage = () => {
       lightColor: 'text-green-600',
       darkColor: 'text-green-400',
       lightBg: 'bg-white border border-gray-200 hover:bg-green-50 hover:border-green-200',
-      darkBg: 'dark:bg-gradient-to-r dark:from-green-500 dark:to-green-600 dark:hover:from-green-600 dark:hover:to-green-700',
+      darkBg: 'dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700',
     },
     {
       title: 'Create Study Guide',
@@ -86,7 +86,7 @@ const DashboardPage = () => {
       lightColor: 'text-amber-600',
       darkColor: 'text-amber-400',
       lightBg: 'bg-white border border-gray-200 hover:bg-amber-50 hover:border-amber-200',
-      darkBg: 'dark:bg-gradient-to-r dark:from-amber-500 dark:to-amber-600 dark:hover:from-amber-600 dark:hover:to-amber-700',
+      darkBg: 'dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700',
     },
     {
       title: 'Make Presentation',
@@ -96,7 +96,7 @@ const DashboardPage = () => {
       lightColor: 'text-purple-600',
       darkColor: 'text-purple-400',
       lightBg: 'bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-200',
-      darkBg: 'dark:bg-gradient-to-r dark:from-purple-500 dark:to-purple-600 dark:hover:from-purple-600 dark:hover:to-purple-700',
+      darkBg: 'dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700',
     },
   ];
 
