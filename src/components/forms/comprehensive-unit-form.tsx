@@ -190,6 +190,9 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
 
   // Validation functions
   const validateBasicInfo = () => {
+    if (isHE) {
+      return basicData.unit_code.trim() && basicData.unit_title.trim() && basicData.unit_outline.trim();
+    }
     return basicData.unit_code.trim() && basicData.unit_title.trim() && basicData.competency.trim();
   };
 
@@ -211,7 +214,23 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
     );
   };
 
+  // SCEI-HE validation functions
+  const validateLearningOutcomes = () => {
+    return learningOutcomes.some(outcome => outcome.trim());
+  };
+
+  const validateContents = () => {
+    return contents.some(content => 
+      content.content.trim() && content.criteria.some(c => c.trim())
+    );
+  };
+
   const canSubmit = () => {
+    if (isHE) {
+      // SCEI-HE validation: basic info + learning outcomes + contents required
+      return validateBasicInfo() && validateLearningOutcomes() && validateContents();
+    }
+    // SCEI validation: all sections required
     return validateBasicInfo() && validateElements() && validatePerformanceEvidence() && validateKnowledgeEvidence();
   };
 
@@ -408,35 +427,68 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
     e.preventDefault();
 
     if (!canSubmit()) {
-      toast.error('Please fill in all required sections with at least one item each');
+      const errorMessage = isHE 
+        ? 'Please fill in basic information, at least one learning outcome, and at least one content area with criteria'
+        : 'Please fill in all required sections with at least one item each';
+      toast.error(errorMessage);
       return;
     }
 
-    // Transform form data to match API payload format
-    const cleanElements = unitElements.filter(el => el.element.trim()).map(el => ({
-      element: el.element,
-      criteria: el.criterias.filter(c => c.trim()) // "criteria" not "criterias"
-    }));
+    let apiPayload: any;
 
-    const cleanEvidences = performanceEvidences.filter(pe => pe.evidence.trim()).map(pe => ({
-      element: pe.evidence, // evidence becomes element in API
-      subTopics: pe.subtopics.filter(st => st.trim()) // "subTopics" not "subtopics"
-    }));
+    if (isHE) {
+      // SCEI-HE payload format
+      const cleanOutcomes = learningOutcomes.filter(outcome => outcome.trim());
+      const cleanAttributes = attributes.filter(attr => attr.trim());
+      const cleanContents = contents.filter(content => content.content.trim()).map(content => ({
+        content: content.content.trim(),
+        criterias: content.criteria.filter(c => c.trim()) // "criterias" for SCEI-HE
+      }));
+      const cleanStandards = standards.filter(standard => standard.trim());
+      const cleanBenchmarks = benchmarks.filter(benchmark => 
+        benchmark.uni_name.trim() || benchmark.course_outline.trim()
+      ).map(benchmark => ({
+        uni_name: benchmark.uni_name.trim(),
+        outline: benchmark.course_outline.trim(), // "outline" not "course_outline"
+        units: benchmark.units.filter(unit => unit.trim())
+      }));
 
-    const cleanKnowledge = knowledgeEvidences.filter(kn => kn.topic.trim()).map(kn => ({
-      element: kn.topic, // topic becomes element in API
-      subTopics: kn.subtopics.filter(st => st.trim()) // "subTopics" not "subtopics"
-    }));
+      apiPayload = {
+        unit_code: basicData.unit_code.trim(),
+        name: basicData.unit_title.trim(),
+        outline: basicData.unit_outline.trim(),
+        outcomes: cleanOutcomes,
+        attributes: cleanAttributes,
+        contents: cleanContents,
+        standards: cleanStandards,
+        benchmarks: cleanBenchmarks
+      };
+    } else {
+      // SCEI payload format (existing)
+      const cleanElements = unitElements.filter(el => el.element.trim()).map(el => ({
+        element: el.element,
+        criteria: el.criterias.filter(c => c.trim()) // "criteria" not "criterias"
+      }));
 
-    // Create API payload in the format backend expects
-    const apiPayload = {
-      unit_code: basicData.unit_code.trim(),
-      name: basicData.unit_title.trim(), // "name" not "unit_title"
-      competency: basicData.competency,
-      elements: cleanElements,
-      evidences: cleanEvidences,
-      knowledge: cleanKnowledge
-    };
+      const cleanEvidences = performanceEvidences.filter(pe => pe.evidence.trim()).map(pe => ({
+        element: pe.evidence, // evidence becomes element in API
+        subTopics: pe.subtopics.filter(st => st.trim()) // "subTopics" not "subtopics"
+      }));
+
+      const cleanKnowledge = knowledgeEvidences.filter(kn => kn.topic.trim()).map(kn => ({
+        element: kn.topic, // topic becomes element in API
+        subTopics: kn.subtopics.filter(st => st.trim()) // "subTopics" not "subtopics"
+      }));
+
+      apiPayload = {
+        unit_code: basicData.unit_code.trim(),
+        name: basicData.unit_title.trim(), // "name" not "unit_title"
+        competency: basicData.competency,
+        elements: cleanElements,
+        evidences: cleanEvidences,
+        knowledge: cleanKnowledge
+      };
+    }
 
     try {
       const result = await onSubmit(apiPayload);
@@ -469,28 +521,59 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
             <span className="hidden sm:inline">Basic Info</span>
             <span className="sm:hidden">Basic</span>
           </TabsTrigger>
-          <TabsTrigger value="elements" className="flex-shrink-0 text-xs sm:text-sm">
-            <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Elements</span>
-            <span className="sm:hidden">Elements</span>
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex-shrink-0 text-xs sm:text-sm">
-            <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Performance</span>
-            <span className="sm:hidden">Perf</span>
-          </TabsTrigger>
-          <TabsTrigger value="knowledge" className="flex-shrink-0 text-xs sm:text-sm">
-            <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Knowledge</span>
-            <span className="sm:hidden">Know</span>
-          </TabsTrigger>
-          {isHE && (
-            <TabsTrigger value="outcomes" className="flex-shrink-0 text-xs sm:text-sm">
-              <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Outcomes</span>
-              <span className="sm:hidden">Out</span>
-            </TabsTrigger>
+          
+          {/* SCEI-specific tabs */}
+          {!isHE && (
+            <>
+              <TabsTrigger value="elements" className="flex-shrink-0 text-xs sm:text-sm">
+                <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Elements</span>
+                <span className="sm:hidden">Elements</span>
+              </TabsTrigger>
+              <TabsTrigger value="performance" className="flex-shrink-0 text-xs sm:text-sm">
+                <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Performance</span>
+                <span className="sm:hidden">Perf</span>
+              </TabsTrigger>
+              <TabsTrigger value="knowledge" className="flex-shrink-0 text-xs sm:text-sm">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Knowledge</span>
+                <span className="sm:hidden">Know</span>
+              </TabsTrigger>
+            </>
           )}
+
+          {/* SCEI-HE specific tabs */}
+          {isHE && (
+            <>
+              <TabsTrigger value="outcomes" className="flex-shrink-0 text-xs sm:text-sm">
+                <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Learning Outcomes</span>
+                <span className="sm:hidden">Outcomes</span>
+              </TabsTrigger>
+              <TabsTrigger value="attributes" className="flex-shrink-0 text-xs sm:text-sm">
+                <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Graduate Attributes</span>
+                <span className="sm:hidden">Attributes</span>
+              </TabsTrigger>
+              <TabsTrigger value="contents" className="flex-shrink-0 text-xs sm:text-sm">
+                <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">ACECQA Content</span>
+                <span className="sm:hidden">Content</span>
+              </TabsTrigger>
+              <TabsTrigger value="standards" className="flex-shrink-0 text-xs sm:text-sm">
+                <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Industry Standards</span>
+                <span className="sm:hidden">Standards</span>
+              </TabsTrigger>
+              <TabsTrigger value="benchmarks" className="flex-shrink-0 text-xs sm:text-sm">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">University Benchmarks</span>
+                <span className="sm:hidden">Benchmarks</span>
+              </TabsTrigger>
+            </>
+          )}
+
           <TabsTrigger value="assessor" className="flex-shrink-0 text-xs sm:text-sm">
             <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Assessor Guide</span>
@@ -570,34 +653,41 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="competency">Competency *</Label>
-                <Textarea
-                  id="competency"
-                  value={basicData.competency}
-                  onChange={(e) => setBasicData(prev => ({ ...prev, competency: e.target.value }))}
-                  placeholder="Describe the competency for this unit"
-                  rows={3}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="unit_outline">Unit Outline</Label>
-                <Textarea
-                  id="unit_outline"
-                  value={basicData.unit_outline}
-                  onChange={(e) => setBasicData(prev => ({ ...prev, unit_outline: e.target.value }))}
-                  placeholder="Provide a detailed outline of the unit"
-                  rows={6}
-                />
-              </div>
+              {/* Conditional Field: Competency for SCEI, Unit Outline for SCEI-HE */}
+              {isHE ? (
+                <div className="space-y-2">
+                  <Label htmlFor="unit_outline">Unit Outline *</Label>
+                  <Textarea
+                    id="unit_outline"
+                    value={basicData.unit_outline}
+                    onChange={(e) => setBasicData(prev => ({ ...prev, unit_outline: e.target.value }))}
+                    placeholder="Provide a detailed outline of the unit for higher education"
+                    rows={6}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="competency">Competency *</Label>
+                  <Textarea
+                    id="competency"
+                    value={basicData.competency}
+                    onChange={(e) => setBasicData(prev => ({ ...prev, competency: e.target.value }))}
+                    placeholder="Describe the competency for this unit"
+                    rows={3}
+                    required
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Elements Tab */}
-        <TabsContent value="elements">
+        {/* SCEI-specific tabs */}
+        {!isHE && (
+          <>
+            {/* Elements Tab */}
+            <TabsContent value="elements">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -849,66 +939,78 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
             </CardContent>
           </Card>
         </TabsContent>
+          </>
+        )}
 
-        {/* Learning Outcomes Tab (HE only) */}
+        {/* SCEI-HE specific tabs */}
         {isHE && (
+          <>
+            {/* Learning Outcomes Tab */}
           <TabsContent value="outcomes">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <GraduationCap className="h-5 w-5" />
-                  <span>Learning Outcomes & Graduate Attributes</span>
+                  <span>Learning Outcomes</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Learning Outcomes Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-base font-medium">Learning Outcomes</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLearningOutcomes([...learningOutcomes, ''])}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Outcome
-                    </Button>
-                  </div>
-                  
-                  {learningOutcomes.map((outcome, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Textarea
-                        value={outcome}
-                        onChange={(e) => {
-                          const updated = [...learningOutcomes];
-                          updated[index] = e.target.value;
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Learning Outcomes</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLearningOutcomes([...learningOutcomes, ''])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Outcome
+                  </Button>
+                </div>
+                
+                {learningOutcomes.map((outcome, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Textarea
+                      value={outcome}
+                      onChange={(e) => {
+                        const updated = [...learningOutcomes];
+                        updated[index] = e.target.value;
+                        setLearningOutcomes(updated);
+                      }}
+                      placeholder={`Learning outcome ${index + 1} (e.g., Demonstrate understanding of educational theories)`}
+                      className="flex-1"
+                      rows={2}
+                    />
+                    {learningOutcomes.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updated = learningOutcomes.filter((_, i) => i !== index);
                           setLearningOutcomes(updated);
                         }}
-                        placeholder={`Learning outcome ${index + 1}`}
-                        className="flex-1"
-                        rows={2}
-                      />
-                      {learningOutcomes.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const updated = learningOutcomes.filter((_, i) => i !== index);
-                            setLearningOutcomes(updated);
-                          }}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                {/* Graduate Attributes Section */}
-                <div className="space-y-4">
+            {/* Graduate Attributes Tab */}
+            <TabsContent value="attributes">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Award className="h-5 w-5" />
+                    <span>Graduate Attributes</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-medium">Graduate Attributes</Label>
                     <Button
@@ -931,7 +1033,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
                           updated[index] = e.target.value;
                           setAttributes(updated);
                         }}
-                        placeholder={`Graduate attribute ${index + 1}`}
+                        placeholder={`Graduate attribute ${index + 1} (e.g., Critical thinking, Communication)`}
                         className="flex-1"
                       />
                       {attributes.length > 1 && (
@@ -950,10 +1052,301 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
                       )}
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ACECQA Content Tab */}
+            <TabsContent value="contents">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BookOpen className="h-5 w-5" />
+                    <span>ACECQA Content</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Content Areas with Criteria</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContents([...contents, { content: '', criteria: [''] }])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Content
+                    </Button>
+                  </div>
+                  
+                  {contents.map((contentItem, contentIndex) => (
+                    <Card key={contentIndex} className="p-4 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-2">
+                          <div className="flex-1 space-y-2">
+                            <Label>Content Area {contentIndex + 1}</Label>
+                            <Textarea
+                              value={contentItem.content}
+                              onChange={(e) => {
+                                const updated = [...contents];
+                                updated[contentIndex].content = e.target.value;
+                                setContents(updated);
+                              }}
+                              placeholder="Enter content area description"
+                              rows={2}
+                            />
+                          </div>
+                          {contents.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const updated = contents.filter((_, i) => i !== contentIndex);
+                                setContents(updated);
+                              }}
+                              className="text-red-600 hover:text-red-700 mt-6"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Criteria</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = [...contents];
+                                updated[contentIndex].criteria.push('');
+                                setContents(updated);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Criteria
+                            </Button>
+                          </div>
+                          
+                          {contentItem.criteria.map((criteria, criteriaIndex) => (
+                            <div key={criteriaIndex} className="flex items-center space-x-2 ml-4">
+                              <Input
+                                value={criteria}
+                                onChange={(e) => {
+                                  const updated = [...contents];
+                                  updated[contentIndex].criteria[criteriaIndex] = e.target.value;
+                                  setContents(updated);
+                                }}
+                                placeholder={`Criteria ${criteriaIndex + 1}`}
+                                className="flex-1"
+                              />
+                              {contentItem.criteria.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const updated = [...contents];
+                                    updated[contentIndex].criteria = updated[contentIndex].criteria.filter((_, i) => i !== criteriaIndex);
+                                    setContents(updated);
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Industry Standards Tab */}
+            <TabsContent value="standards">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5" />
+                    <span>Industry Standards</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">Industry Standards</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStandards([...standards, ''])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Standard
+                    </Button>
+                  </div>
+                  
+                  {standards.map((standard, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <Input
+                        value={standard}
+                        onChange={(e) => {
+                          const updated = [...standards];
+                          updated[index] = e.target.value;
+                          setStandards(updated);
+                        }}
+                        placeholder={`Industry standard ${index + 1} (e.g., ACECQA approved standards)`}
+                        className="flex-1"
+                      />
+                      {standards.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const updated = standards.filter((_, i) => i !== index);
+                            setStandards(updated);
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* University Benchmarks Tab */}
+            <TabsContent value="benchmarks">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5" />
+                    <span>University Benchmarks</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">University Comparisons</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBenchmarks([...benchmarks, { uni_name: '', course_outline: '', units: [''] }])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Benchmark
+                    </Button>
+                  </div>
+                  
+                  {benchmarks.map((benchmark, benchmarkIndex) => (
+                    <Card key={benchmarkIndex} className="p-4 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-2">
+                          <div className="flex-1 space-y-3">
+                            <div className="space-y-2">
+                              <Label>University Name</Label>
+                              <Input
+                                value={benchmark.uni_name}
+                                onChange={(e) => {
+                                  const updated = [...benchmarks];
+                                  updated[benchmarkIndex].uni_name = e.target.value;
+                                  setBenchmarks(updated);
+                                }}
+                                placeholder="e.g., University of Sydney"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Course Outline</Label>
+                              <Textarea
+                                value={benchmark.course_outline}
+                                onChange={(e) => {
+                                  const updated = [...benchmarks];
+                                  updated[benchmarkIndex].course_outline = e.target.value;
+                                  setBenchmarks(updated);
+                                }}
+                                placeholder="Brief description of the course"
+                                rows={3}
+                              />
+                            </div>
+                          </div>
+                          {benchmarks.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const updated = benchmarks.filter((_, i) => i !== benchmarkIndex);
+                                setBenchmarks(updated);
+                              }}
+                              className="text-red-600 hover:text-red-700 mt-6"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Related Units</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = [...benchmarks];
+                                updated[benchmarkIndex].units.push('');
+                                setBenchmarks(updated);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Unit
+                            </Button>
+                          </div>
+                          
+                          {benchmark.units.map((unit, unitIndex) => (
+                            <div key={unitIndex} className="flex items-center space-x-2 ml-4">
+                              <Input
+                                value={unit}
+                                onChange={(e) => {
+                                  const updated = [...benchmarks];
+                                  updated[benchmarkIndex].units[unitIndex] = e.target.value;
+                                  setBenchmarks(updated);
+                                }}
+                                placeholder={`Unit code ${unitIndex + 1} (e.g., EDUC1001)`}
+                                className="flex-1"
+                              />
+                              {benchmark.units.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const updated = [...benchmarks];
+                                    updated[benchmarkIndex].units = updated[benchmarkIndex].units.filter((_, i) => i !== unitIndex);
+                                    setBenchmarks(updated);
+                                  }}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </>
         )}
 
         {/* Assessor Guide Tab */}

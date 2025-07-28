@@ -10,6 +10,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 
+### Environment Setup
+Before running the application, copy `.env.example` to `.env.local` and fill in the required values:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` with your actual Azure Functions key and API base URL.
+
 ### Testing
 No test framework currently configured in this project.
 
@@ -39,9 +46,10 @@ Domain is determined at login and affects:
 
 ### Authentication & API
 - **Authentication**: JWT tokens stored in Zustand with persistence
-- **API Base**: Azure Functions backend (`https://scei-api.azurewebsites.net/api`)
-- **Headers**: All requests include Azure Functions key and domain context
+- **API Base**: Azure Functions backend (configured via `NEXT_PUBLIC_API_BASE_URL` environment variable)
+- **Headers**: All requests include Azure Functions key (from `NEXT_PUBLIC_AZURE_FUNCTIONS_KEY` env var) and domain context
 - **Auto-logout**: 401 responses trigger automatic logout and redirect
+- **Security**: Sensitive API keys are stored in environment variables, not in source code
 
 ### State Management Pattern
 ```typescript
