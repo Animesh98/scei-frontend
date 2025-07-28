@@ -146,10 +146,15 @@ export const useDeleteUser = () => {
 
 // Assessment Types
 export const useAssessmentTypes = () => {
+  const { user } = useAuthStore.getState();
+  
   return useQuery({
-    queryKey: ['assessment-types'],
+    queryKey: ['assessment-types', user?.domain],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<AssessmentType[]>>('/assessments/he/types');
+      const endpoint = '/assessments/he/types';
+      console.log('Using assessment types endpoint:', endpoint, 'for domain:', user?.domain);
+      
+      const response = await api.get<ApiResponse<AssessmentType[]>>(endpoint);
       return response.data.data;
     },
   });
@@ -184,7 +189,7 @@ export const useGenerateAssessment = () => {
       });
       
       // Prepare request data based on assessment type
-      const requestData: any = {
+      const requestData: Record<string, unknown> = {
         unit_id: data.unit_id,
         type: data.type,
         suggestion: data.suggestion || '',
@@ -206,8 +211,12 @@ export const useGenerateAssessment = () => {
 
       console.log('Sending assessment generation request:', requestData);
       
+      // Determine the correct endpoint based on domain
+      const endpoint = user?.domain === 'scei-he' ? '/assessments/he/generate' : '/assessments/generate';
+      console.log('Using assessment generation endpoint:', endpoint, 'for domain:', user?.domain);
+      
       try {
-        const response = await api.post<ApiResponse<{ text: string }>>('/assessments/generate', requestData);
+        const response = await api.post<ApiResponse<{ text: string }>>(endpoint, requestData);
         console.log('Assessment generation response:', response.data);
         
         // Check if response indicates success but no content
@@ -217,14 +226,15 @@ export const useGenerateAssessment = () => {
         }
         
         return response.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Assessment generation failed:', error);
-        if (error.response?.status === 401) {
+        const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 401) {
           throw new Error('Authentication failed. Please login again.');
-        } else if (error.response?.status === 404) {
+        } else if (axiosError.response?.status === 404) {
           throw new Error('Unit or assessment type not found. Please verify the selection.');
-        } else if (error.response?.data?.message) {
-          throw new Error(error.response.data.message);
+        } else if (axiosError.response?.data?.message) {
+          throw new Error(axiosError.response.data.message);
         }
         throw error;
       }
@@ -241,19 +251,28 @@ export const useSaveAssessment = () => {
       element_id?: number;
       criteria_id?: number;
     }) => {
-      const response = await api.post<ApiResponse<void>>('/assessments', data);
+      const { user } = useAuthStore.getState();
+      const endpoint = user?.domain === 'scei-he' ? '/assessments/he' : '/assessments';
+      console.log('Using save assessment endpoint:', endpoint, 'for domain:', user?.domain);
+      
+      const response = await api.post<ApiResponse<void>>(endpoint, data);
       return response.data;
     },
   });
 };
 
 export const useAssessment = (unitId: string, type: string, elementId?: number, criteriaId?: number) => {
+  const { user } = useAuthStore.getState();
+  
   return useQuery({
-    queryKey: ['assessment', unitId, type, elementId, criteriaId],
+    queryKey: ['assessment', user?.domain, unitId, type, elementId, criteriaId],
     queryFn: async () => {
-      let url = `/assessments/${unitId}?type=${type}`;
+      const baseEndpoint = user?.domain === 'scei-he' ? '/assessments/he' : '/assessments';
+      let url = `${baseEndpoint}/${unitId}?type=${type}`;
       if (elementId !== undefined) url += `&element_id=${elementId}`;
       if (criteriaId !== undefined) url += `&criteria_id=${criteriaId}`;
+      
+      console.log('Using assessment fetch endpoint:', url, 'for domain:', user?.domain);
       
       const response = await api.get<ApiResponse<Assessment>>(url);
       return response.data.data;
