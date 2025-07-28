@@ -1,6 +1,12 @@
-// export const API_BASE_URL = 'https://scei-api.azurewebsites.net/api';
-export const API_BASE_URL = 'http://localhost:7071/api/';
-export const AZURE_FUNCTIONS_KEY = 'XSC6PaKAtp8wr-vYiBQYV0siNq1rnfSYKB9LMCpcYDMHAzFuZRhhaw==';
+// API Configuration from environment variables
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://scei-api.azurewebsites.net/api';
+export const AZURE_FUNCTIONS_KEY = process.env.NEXT_PUBLIC_AZURE_FUNCTIONS_KEY || '';
+
+// Validation for required environment variables
+if (typeof window === 'undefined' && !process.env.NEXT_PUBLIC_AZURE_FUNCTIONS_KEY) {
+  console.error('❌ Missing required environment variable: NEXT_PUBLIC_AZURE_FUNCTIONS_KEY');
+  console.error('Please ensure .env.local file exists with the required Azure Functions key');
+}
 
 export const DOMAINS = {
   SCEI: 'scei',

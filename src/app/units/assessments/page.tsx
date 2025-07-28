@@ -482,10 +482,10 @@ const AssessmentsPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-3 sm:p-4 lg:p-6">
-                <div className="bg-white rounded-lg border p-3 sm:p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                   <MarkdownRenderer 
                     content={getDisplayContent()} 
-                    className="text-gray-800"
+                    className="text-gray-800 dark:text-gray-200"
                   />
                 </div>
               </CardContent>
