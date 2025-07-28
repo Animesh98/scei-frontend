@@ -151,11 +151,11 @@ const UnitSelector: React.FC<UnitSelectorProps> = ({
         </Button>
 
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
             {/* Search Input */}
-            <div className="p-3 border-b border-gray-100">
+            <div className="p-3 border-b border-gray-100 dark:border-gray-700">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <Input
                   ref={searchInputRef}
                   type="text"
@@ -177,7 +177,7 @@ const UnitSelector: React.FC<UnitSelectorProps> = ({
               tabIndex={-1}
             >
               {filteredUnits.length === 0 ? (
-                <li className="px-3 py-2 text-sm text-gray-500 text-center">
+                <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-center">
                   No units found.
                 </li>
               ) : (
@@ -188,9 +188,9 @@ const UnitSelector: React.FC<UnitSelectorProps> = ({
                     aria-selected={selectedUnit === unit.id}
                     className={cn(
                       "relative cursor-pointer select-none px-3 py-2 text-sm",
-                      "hover:bg-gray-100 focus:bg-gray-100",
-                      highlightedIndex === index && "bg-gray-100",
-                      selectedUnit === unit.id && "bg-primary-50"
+                      "hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700",
+                      highlightedIndex === index && "bg-gray-100 dark:bg-gray-700",
+                      selectedUnit === unit.id && "bg-primary-50 dark:bg-blue-900/50"
                     )}
                     onClick={() => handleUnitSelect(unit.id)}
                     onMouseEnter={() => setHighlightedIndex(index)}
@@ -203,10 +203,10 @@ const UnitSelector: React.FC<UnitSelectorProps> = ({
                         )}
                       />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-medium text-gray-900 truncate">
+                        <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
                           {unit.unit_code}
                         </span>
-                        <span className="text-xs text-gray-500 truncate">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {unit.unit_title}
                         </span>
                       </div>
