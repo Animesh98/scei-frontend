@@ -695,7 +695,18 @@ All API responses follow this standardized format:
 **Headers:**
 - `Authorization`: JWT token (if route is protected)
 
-**Request:**
+**Request (Questioning Type - New System):**
+```json
+{
+  "unit_id": "unit_object_id",
+  "type": "questioning_assessment_type_id",
+  "question_type": "direct_knowledge",
+  "suggestion": "Focus on theoretical knowledge",
+  "text": "Previous questions for context"
+}
+```
+
+**Request (Other Assessment Types):**
 ```json
 {
   "unit_id": "unit_object_id",
@@ -705,13 +716,21 @@ All API responses follow this standardized format:
 }
 ```
 
+**Available Question Types for SCEI-HE:**
+- `direct_knowledge`: Theory-based questions at university level
+- `procedural`: Step-by-step process questions for HE
+- `scenario_based`: Real-world application scenarios for HE
+- `reflection_based`: Critical thinking and self-reflection for HE
+- `situational_judgement`: Decision-making questions for HE
+- `comparison_analysis`: Analysis and comparison questions for HE
+
 **Response:**
 ```json
 {
   "status": true,
   "message": "",
   "data": {
-    "text": "Generated assessment content with AI analysis..."
+    "text": "Generated assessment content with questions and answers..."
   }
 }
 ```
@@ -785,7 +804,27 @@ All API responses follow this standardized format:
 - `Authorization`: JWT token (if route is protected)
 - `domain`: `scei-he`
 
-**Request:**
+**Request (Questioning Type):**
+```json
+{
+  "unit_id": "unit_object_id",
+  "type": "questioning_assessment_type_id",
+  "element_id": 12345,
+  "criteria_id": 67890,
+  "text": "Generated questions and answers content",
+  "mappings": [
+    {
+      "course_learning_outcome": "CLO1, CLO2",
+      "unit_learning_outcome": "ULO1, ULO3",
+      "graduate_attribute": "GA1, GA2",
+      "acecqa_content": "AC1.1, AC2.1",
+      "industry_standard": "IS1, IS2"
+    }
+  ]
+}
+```
+
+**Request (Other Types):**
 ```json
 {
   "unit_id": "unit_object_id",
@@ -793,9 +832,11 @@ All API responses follow this standardized format:
   "text": "Assessment content to save",
   "mappings": [
     {
-      "learning_outcome": "LO1",
-      "assessment_criteria": "AC1",
-      "mapping_details": "Mapping explanation"
+      "course_learning_outcome": "CLO1",
+      "unit_learning_outcome": "ULO2",
+      "graduate_attribute": "GA3",
+      "acecqa_content": "AC1.1",
+      "industry_standard": "IS1"
     }
   ]
 }
@@ -858,22 +899,53 @@ All API responses follow this standardized format:
 
 **Query Parameters:**
 - `type`: Assessment type ObjectId
+- `element_id`: Element ID (for questioning type)
+- `criteria_id`: Criteria ID (for questioning type)
 
-**Response:**
+**Response (Single Assessment):**
 ```json
 {
   "status": true,
   "message": "",
   "data": {
+    "_id": "assessment_id",
+    "id": "assessment_id",
     "assessment": "Saved assessment content",
     "mappings": [
       {
-        "learning_outcome": "LO1",
-        "assessment_criteria": "AC1",
-        "mapping_details": "Mapping explanation"
+        "course_learning_outcome": "CLO1",
+        "unit_learning_outcome": "ULO2", 
+        "graduate_attribute": "GA3",
+        "acecqa_content": "AC1.1",
+        "industry_standard": "IS1"
       }
     ]
   }
+}
+```
+
+**Response (Multiple Questioning Assessments):**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": [
+    {
+      "_id": "assessment_id",
+      "id": "assessment_id",
+      "element_id": 12345,
+      "criteria_id": 67890,
+      "assessment": "Questions and answers content",
+      "question_type_name": "Direct Knowledge Questions",
+      "mappings": [
+        {
+          "course_learning_outcome": "CLO1, CLO2",
+          "unit_learning_outcome": "ULO1, ULO3",
+          "graduate_attribute": "GA1, GA2"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -2321,9 +2393,11 @@ All API responses follow this standardized format:
 
 5. **File Uploads**: For assessor guide uploads, use `multipart/form-data` with the file in the `assessor_guide_file` field.
 
-6. **Assessment Types**: The questioning assessment type has a special ID (`6703c26d78548ed67f9862a6`) and uses different request/response formats.
+6. **Assessment Types**: The questioning assessment type has a special ID (`6703c26d78548ed67f9862a6` for SCEI) and uses different request/response formats. SCEI-HE has its own questioning assessment type with similar functionality.
 
 7. **ObjectId Handling**: MongoDB ObjectIds are automatically converted to strings in responses with both `_id` and `id` fields for compatibility.
+
+8. **SCEI and SCEI-HE Consistency**: Both systems now support identical questioning assessment approaches with 6 question types (`direct_knowledge`, `procedural`, `scenario_based`, `reflection_based`, `situational_judgement`, `comparison_analysis`). API patterns for generation, saving, and fetching are consistent between domains.
 
 ## Performance Considerations
 

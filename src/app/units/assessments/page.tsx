@@ -73,8 +73,12 @@ const AssessmentsPage = () => {
 
   // Load existing assessment when available
   useEffect(() => {
-    if (existingAssessment?.generated_text) {
-      setGeneratedContent(existingAssessment.generated_text);
+    if (existingAssessment) {
+      // Handle both SCEI (generated_text) and SCEI-HE (assessment) field names
+      const content = existingAssessment.generated_text || existingAssessment.assessment || '';
+      if (content) {
+        setGeneratedContent(content);
+      }
     }
   }, [existingAssessment]);
 
@@ -226,6 +230,7 @@ const AssessmentsPage = () => {
     }
   };
 
+  // Determine if selected assessment type is questioning (same ID for both SCEI and SCEI-HE)
   const isQuestioning = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING;
 
   // Helper functions for history

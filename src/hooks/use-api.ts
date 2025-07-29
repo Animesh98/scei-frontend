@@ -10,7 +10,8 @@ import {
   StudyGuide,
   Presentation,
   ApiResponse, 
-  PaginatedResponse 
+  PaginatedResponse,
+  SceiHEAssessmentMapping
 } from '@/types';
 
 // SCEI API payload interface - exported for use in components
@@ -160,6 +161,12 @@ export const useAssessmentTypes = () => {
   });
 };
 
+// Helper function to determine if assessment type is questioning
+// Since both SCEI and SCEI-HE use the same assessment_types collection, they share the same IDs
+const isQuestioningAssessmentType = (assessmentTypeId: string) => {
+  return assessmentTypeId === '6703c26d78548ed67f9862a6';
+};
+
 // Assessments
 export const useGenerateAssessment = () => {
   return useMutation({
@@ -173,19 +180,21 @@ export const useGenerateAssessment = () => {
       suggestion?: string;
       text?: string;
     }) => {
-      const isQuestioningType = data.type === '6703c26d78548ed67f9862a6';
-      
       // Validate authentication state
       const { user, token } = useAuthStore.getState();
       if (!user || !token) {
         throw new Error('User not authenticated. Please login again.');
       }
       
+      // Determine if this is a questioning type assessment
+      const isQuestioningType = isQuestioningAssessmentType(data.type);
+      
       console.log('User authentication state:', {
         userExists: !!user,
         tokenExists: !!token,
         domain: user?.domain,
-        tokenLength: token?.length
+        tokenLength: token?.length,
+        isQuestioningType
       });
       
       // Prepare request data based on assessment type
@@ -250,12 +259,44 @@ export const useSaveAssessment = () => {
       text: string;
       element_id?: number;
       criteria_id?: number;
+      mappings?: SceiHEAssessmentMapping[]; // Optional mappings for SCEI-HE
     }) => {
       const { user } = useAuthStore.getState();
       const endpoint = user?.domain === 'scei-he' ? '/assessments/he' : '/assessments';
       console.log('Using save assessment endpoint:', endpoint, 'for domain:', user?.domain);
       
-      const response = await api.post<ApiResponse<void>>(endpoint, data);
+      // Prepare save data based on domain
+      const saveData: Record<string, unknown> = {
+        unit_id: data.unit_id,
+        type: data.type,
+        text: data.text,
+      };
+
+      // Add element_id and criteria_id for both domains if provided
+      if (data.element_id !== undefined) {
+        saveData.element_id = data.element_id;
+      }
+      if (data.criteria_id !== undefined) {
+        saveData.criteria_id = data.criteria_id;
+      }
+
+      // Add mappings for SCEI-HE
+      if (user?.domain === 'scei-he') {
+        // If mappings are provided, use them; otherwise provide empty array
+        saveData.mappings = data.mappings || [
+          {
+            course_learning_outcome: "",
+            unit_learning_outcome: "",
+            graduate_attribute: "",
+            acecqa_content: "",
+            industry_standard: ""
+          }
+        ];
+      }
+
+      console.log('Sending save assessment request:', saveData);
+      
+      const response = await api.post<ApiResponse<void>>(endpoint, saveData);
       return response.data;
     },
   });
@@ -274,8 +315,37 @@ export const useAssessment = (unitId: string, type: string, elementId?: number, 
       
       console.log('Using assessment fetch endpoint:', url, 'for domain:', user?.domain);
       
-      const response = await api.get<ApiResponse<Assessment>>(url);
-      return response.data.data;
+      const response = await api.get<ApiResponse<Assessment | Assessment[]>>(url);
+      const assessmentData = response.data.data;
+      
+      // Handle different response formats
+      if (Array.isArray(assessmentData)) {
+        // For questioning assessments that return arrays, get the first one or create a combined assessment
+        if (assessmentData.length > 0) {
+          const firstAssessment = assessmentData[0];
+          // Normalize the field names for consistent usage
+          const normalizedAssessment: Assessment = {
+            ...firstAssessment,
+            // Ensure both field names are available for backward compatibility
+            generated_text: firstAssessment.assessment || firstAssessment.generated_text,
+            assessment: firstAssessment.assessment || firstAssessment.generated_text,
+          };
+          return normalizedAssessment;
+        } else {
+          return null;
+        }
+      } else if (assessmentData) {
+        // Single assessment - normalize field names
+        const normalizedAssessment: Assessment = {
+          ...assessmentData,  
+          // Ensure both field names are available for backward compatibility
+          generated_text: assessmentData.assessment || assessmentData.generated_text,
+          assessment: assessmentData.assessment || assessmentData.generated_text,
+        };
+        return normalizedAssessment;
+      }
+      
+      return null;
     },
     enabled: !!unitId && !!type,
   });

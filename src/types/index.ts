@@ -53,14 +53,38 @@ export interface Benchmark {
 
 export interface Assessment {
   id: string;
-  unit_id: string;
-  assessment_type: string;
-  generated_text: string;
+  unit_id?: string;
+  assessment_type?: string;
+  // SCEI uses generated_text, SCEI-HE uses assessment
+  generated_text?: string;
+  assessment?: string;
   element_id?: number;
   criteria_id?: number;
-  mappings?: AssessmentMapping;
+  question_type_name?: string; // For SCEI-HE questioning assessments
+  mappings?: AssessmentMapping | SceiHEAssessmentMapping[];
+  scei_mappings?: SceiAssessmentMapping[]; // For SCEI assessments
 }
 
+// SCEI Assessment Mapping
+export interface SceiAssessmentMapping {
+  performance_criteria?: string;
+  performance_evidence?: string;
+  knowledge_evidence?: string;
+}
+
+// SCEI-HE Assessment Mapping  
+export interface SceiHEAssessmentMapping {
+  course_learning_outcome?: string;
+  unit_learning_outcome?: string;
+  graduate_attribute?: string;
+  acecqa_content?: string;
+  industry_standard?: string;
+  learning_outcome?: string;
+  assessment_criteria?: string;
+  mapping_rationale?: string;
+}
+
+// Legacy mapping interface for backward compatibility
 export interface AssessmentMapping {
   performance_criteria?: string;
   performance_evidence?: string;
