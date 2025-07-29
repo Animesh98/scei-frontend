@@ -42,10 +42,8 @@ const PresentationsPage = () => {
   const { data: existingPresentation, refetch: refetchPresentation } = usePresentation(selectedUnit);
 
   const generationMethods = {
-    'dynamic_slides': 'AI-Generated Slide Structure (Recommended)',
-    'dynamic_multi_call': 'Detailed Multi-Call Generation',
-    'enhanced_single': 'Enhanced Single Call (Legacy)',
-    'multi_call': 'Multi-Call with Predefined Structure (Legacy)',
+    'dynamic_slides': 'Standard Generation - Generates a standard document, takes 8-10 mins to render',
+    'dynamic_multi_call': 'Detailed Generation - Generates much detailed and longer document, takes 12-15 mins',
   };
 
   const themes = {

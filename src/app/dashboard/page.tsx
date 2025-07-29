@@ -8,13 +8,9 @@ import { useAuthStore } from '@/store/auth-store';
 import { useUnits } from '@/hooks/use-api';
 import { 
   BookOpen, 
-  Users, 
   FileText, 
   Presentation,
-  Plus,
-  TrendingUp,
-  Clock,
-  CheckCircle
+  Plus
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,40 +18,6 @@ const DashboardPage = () => {
   const { user } = useAuthStore();
   const { data: unitsData } = useUnits(0, 10);
 
-  const stats = [
-    {
-      title: 'Total Units',
-      value: unitsData?.count || 0,
-      icon: BookOpen,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
-      iconBg: 'bg-blue-500',
-    },
-    {
-      title: 'Assessments Generated',
-      value: '0', // Placeholder - you can add API call for this
-      icon: FileText,
-      color: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-green-50 dark:bg-green-900/30',
-      iconBg: 'bg-green-500',
-    },
-    {
-      title: 'Study Guides',
-      value: '0', // Placeholder - you can add API call for this
-      icon: BookOpen,
-      color: 'text-amber-600 dark:text-amber-400',
-      bgColor: 'bg-amber-50 dark:bg-amber-900/30',
-      iconBg: 'bg-amber-500',
-    },
-    {
-      title: 'Presentations',
-      value: '0', // Placeholder - you can add API call for this
-      icon: Presentation,
-      color: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
-      iconBg: 'bg-purple-500',
-    },
-  ];
 
   const quickActions = [
     {
@@ -107,24 +69,6 @@ const DashboardPage = () => {
         subtitle={`${user?.domain === 'scei-he' ? 'SCEI Higher Education' : 'Southern Cross Education Institute'} Dashboard`}
       >
         <div className="space-y-8">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat) => (
-              <Card key={stat.title} className={`border-0 shadow-lg ${stat.bgColor}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{stat.title}</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-                    </div>
-                    <div className={`p-3 rounded-full ${stat.iconBg} shadow-lg`}>
-                      <stat.icon className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
 
           {/* Quick Actions */}
           <div>
