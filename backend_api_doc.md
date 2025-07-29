@@ -724,13 +724,24 @@ All API responses follow this standardized format:
 - `situational_judgement`: Decision-making questions for HE
 - `comparison_analysis`: Analysis and comparison questions for HE
 
-**Response:**
+**Response (Questioning Type):**
 ```json
 {
   "status": true,
   "message": "",
   "data": {
-    "text": "Generated assessment content with questions and answers..."
+    "text": "{\n  \"output\": [\n    {\n      \"question\": \"Question text here for higher education level\",\n      \"answer\": \"Comprehensive response demonstrating university-level analysis\",\n      \"references\": [\"CLO1\", \"ULO2\", \"GA3\", \"AC1.1\", \"IS2\"],\n      \"context\": \"Additional professional context or explanation\"\n    }\n  ],\n  \"mapping\": {\n    \"course_learning_outcome\": \"CLO1, CLO2\",\n    \"unit_learning_outcome\": \"ULO1, ULO2\",\n    \"graduate_attribute\": \"GA1, GA3\",\n    \"acecqa_content\": \"AC1.1, AC2.1\",\n    \"industry_standard\": \"IS1, IS2\",\n    \"benchmark\": \"BU1.1, BU2.1\"\n  }\n}"
+  }
+}
+```
+
+**Response (Other Assessment Types - Essay, Case Study, Report, etc.):**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": {
+    "text": "{\n  \"output\": \"Comprehensive assessment content tailored to the specific assessment type (essay question with marking criteria, case study scenario with analysis requirements, report structure with professional standards, etc.)\",\n  \"mapping\": {\n    \"course_learning_outcome\": \"CLO1, CLO2\",\n    \"unit_learning_outcome\": \"ULO1, ULO2\",\n    \"graduate_attribute\": \"GA1, GA3\",\n    \"acecqa_content\": \"AC1.1, AC2.1\",\n    \"industry_standard\": \"IS1, IS2\",\n    \"benchmark\": \"BU1.1, BU2.1\"\n  }\n}"
   }
 }
 ```
@@ -791,7 +802,7 @@ All API responses follow this standardized format:
   "status": true,
   "message": "",
   "data": {
-    "text": "Generated assessment content with questions and answers..."
+    "text": "{\n  \"output\": [\n    {\n      \"question\": \"Assessment task or question here\",\n      \"answer\": \"Comprehensive response/sample answer here\",\n      \"references\": [\"PC1.1\", \"PE1.2\", \"KE2.1\"],\n      \"context\": \"Additional context or explanation if needed\"\n    }\n  ],\n  \"mapping\": {\n    \"performance_criteria\": \"PC1.1, PC2.1\",\n    \"performance_evidence\": \"PE1.1, PE1.2\",\n    \"knowledge_evidence\": \"KE1.1, KE2.1\"\n  }\n}"
   }
 }
 ```
@@ -2397,7 +2408,12 @@ All API responses follow this standardized format:
 
 7. **ObjectId Handling**: MongoDB ObjectIds are automatically converted to strings in responses with both `_id` and `id` fields for compatibility.
 
-8. **SCEI and SCEI-HE Consistency**: Both systems now support identical questioning assessment approaches with 6 question types (`direct_knowledge`, `procedural`, `scenario_based`, `reflection_based`, `situational_judgement`, `comparison_analysis`). API patterns for generation, saving, and fetching are consistent between domains.
+8. **SCEI and SCEI-HE Assessment Format Consistency**: Both systems follow the same pattern for assessment generation:
+   - **Questioning Types**: Use array format with `'output': [array of question objects]` containing `question`, `answer`, `references`, and `context` fields
+   - **Non-questioning Types**: Use string format with `'output': "assessment content"` that varies by assessment type (essays, case studies, reports, etc.)
+   - **Question Types**: Both domains support 6 question types (`direct_knowledge`, `procedural`, `scenario_based`, `reflection_based`, `situational_judgement`, `comparison_analysis`)
+   - **Mapping Fields**: SCEI uses `performance_criteria`, `performance_evidence`, `knowledge_evidence` while SCEI-HE uses `course_learning_outcome`, `unit_learning_outcome`, `graduate_attribute`, `acecqa_content`, `industry_standard`, `benchmark`
+   - **Assessment Type Uniqueness**: Non-questioning assessment types generate content specific to their purpose (essay questions for essays, case scenarios for case studies, etc.)
 
 ## Performance Considerations
 

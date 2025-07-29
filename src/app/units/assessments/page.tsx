@@ -16,6 +16,7 @@ import UnitSelector from '@/components/ui/unit-selector';
 import MarkdownRenderer from '@/components/ui/markdown-renderer';
 import { useUnits, useGenerateAssessment, useSaveAssessment, useAssessmentTypes, useAssessment } from '@/hooks/use-api';
 import { useUIStore } from '@/store/ui-store';
+import { useAuthStore } from '@/store/auth-store';
 import { generateSessionKey } from '@/lib/utils';
 import { 
   parseAssessmentContent, 
@@ -35,6 +36,7 @@ import type { CheckedState } from '@radix-ui/react-checkbox';
 const AssessmentsPage = () => {
   const searchParams = useSearchParams();
   const { sessionData, setSessionData, getSessionData } = useUIStore();
+  const { user } = useAuthStore();
   
   const [selectedUnit, setSelectedUnit] = useState(searchParams?.get('unit') || '');
   const [selectedAssessmentType, setSelectedAssessmentType] = useState('');
@@ -148,12 +150,13 @@ const AssessmentsPage = () => {
         }
         data.question_type = selectedQuestionType;
         // Component filtering is ignored for questioning assessments (handled in API hook)
-      } else {
-        // Component filtering only applies to non-questioning assessments
+      } else if (user?.domain === 'scei') {
+        // Component filtering only applies to non-questioning SCEI assessments
         data.include_pc = includePC;
         data.include_pe = includePE;
         data.include_ke = includeKE;
       }
+      // SCEI-HE non-questioning assessments don't use component filtering
 
       const result = await generateMutation.mutateAsync(data);
       
@@ -325,8 +328,8 @@ const AssessmentsPage = () => {
                 </div>
               )}
 
-              {/* Component Selection for Non-Questioning Assessments */}
-              {!isQuestioning && selectedAssessmentType && (
+              {/* Component Selection for Non-Questioning SCEI Assessments */}
+              {!isQuestioning && selectedAssessmentType && user?.domain === 'scei' && (
                 <div className="space-y-3">
                   <Label>Include Components</Label>
                   <p className="text-sm text-gray-600">Select which components to include in the assessment generation:</p>

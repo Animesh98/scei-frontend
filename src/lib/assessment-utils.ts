@@ -42,8 +42,9 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
   try {
     // Try to parse as JSON first
     const parsed = JSON.parse(rawContent);
+    console.log('Parsed assessment content:', parsed);
     
-    // Handle questioning format with array of questions
+    // Handle questioning format with array of questions (both SCEI and SCEI-HE)
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.output)) {
       console.log('Parsing questioning format:', parsed);
       const formattedOutput = formatQuestioningAssessment(parsed.output, parsed.mapping);
@@ -53,9 +54,9 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
       };
     }
     
-    // Handle SCEI-HE format where output is a structured object
+    // Handle SCEI-HE format where output is a structured object (legacy support for complex structures)
     if (parsed && typeof parsed === 'object' && parsed.output && typeof parsed.output === 'object' && !Array.isArray(parsed.output)) {
-      console.log('Parsing SCEI-HE structured format:', parsed);
+      console.log('Parsing SCEI-HE structured format (legacy):', parsed);
       const formattedOutput = formatStructuredAssessment(parsed.output);
       return {
         output: formattedOutput,
@@ -63,16 +64,18 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
       };
     }
     
-    // Handle regular format where output is a string
-    if (parsed && typeof parsed === 'object' && parsed.output) {
+    // Handle new SCEI-HE simplified format and regular SCEI format where output is a string
+    if (parsed && typeof parsed === 'object' && parsed.output && typeof parsed.output === 'string') {
+      console.log('Parsing string output format (SCEI-HE simplified or SCEI regular):', parsed);
       return {
         output: String(parsed.output),
         mapping: parsed.mapping || undefined,
       };
     }
     
-    // Handle case where parsed object doesn't have output field
+    // Handle case where parsed object doesn't have output field but has other content
     if (parsed && typeof parsed === 'object') {
+      console.log('Parsing fallback format:', parsed);
       return {
         output: String(parsed.text || parsed.content || JSON.stringify(parsed, null, 2)),
         mapping: parsed.mapping || undefined,
@@ -80,6 +83,7 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
     }
     
     // If parsed is not an object, treat as plain text
+    console.log('Parsing as plain text');
     return {
       output: String(parsed),
     };
@@ -154,8 +158,75 @@ function formatStructuredAssessment(data: any): string {
 
   let markdown = '# Assessment Task\n\n';
 
-  // Handle new assessment structure (assessment.title, assessment.description, etc.)
-  if (data.assessment && typeof data.assessment === 'object') {
+  // Handle newest SCEI-HE structure (fields directly under output)
+  if (data.assessment_title || data.assessment_type || data.context) {
+    // Title
+    if (data.assessment_title) {
+      markdown += `## ${data.assessment_title}\n\n`;
+    }
+    
+    // Assessment Type
+    if (data.assessment_type) {
+      markdown += `**Assessment Type:** ${data.assessment_type}\n\n`;
+    }
+    
+    // Context (similar to description)
+    if (data.context) {
+      markdown += '## Context\n\n';
+      markdown += `${data.context}\n\n`;
+    }
+    
+    // Word Count
+    if (data.word_count) {
+      markdown += '## Requirements\n\n';
+      markdown += `**Word Count:** ${data.word_count}\n\n`;
+    }
+    
+    // Assessment Tasks
+    if (data.assessment_tasks && Array.isArray(data.assessment_tasks)) {
+      markdown += '## Assessment Tasks\n\n';
+      data.assessment_tasks.forEach((task: any, index: number) => {
+        if (task.task_title) {
+          markdown += `### ${task.task_title}\n\n`;
+        } else {
+          markdown += `### Task ${index + 1}\n\n`;
+        }
+        
+        if (task.task_description) {
+          markdown += `**Description:** ${task.task_description}\n\n`;
+        }
+        
+        if (task.requirements && Array.isArray(task.requirements)) {
+          markdown += '**Requirements:**\n';
+          task.requirements.forEach((req: string) => {
+            markdown += `- ${req}\n`;
+          });
+          markdown += '\n';
+        }
+      });
+    }
+    
+    // Submission Guidelines
+    if (data.submission_guidelines) {
+      markdown += '## Submission Guidelines\n\n';
+      markdown += `${data.submission_guidelines}\n\n`;
+    }
+    
+    // Marking Criteria (object structure with keys)
+    if (data.marking_criteria && typeof data.marking_criteria === 'object') {
+      markdown += '## Marking Criteria\n\n';
+      Object.entries(data.marking_criteria).forEach(([key, criterion]: [string, any]) => {
+        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        if (criterion.description && criterion.weighting) {
+          markdown += `### ${formattedKey} (${criterion.weighting})\n\n`;
+          markdown += `${criterion.description}\n\n`;
+        }
+      });
+    }
+  }
+  
+  // Handle previous assessment structure (assessment.title, assessment.description, etc.)
+  else if (data.assessment && typeof data.assessment === 'object') {
     const assessment = data.assessment;
     
     // Title
@@ -169,7 +240,19 @@ function formatStructuredAssessment(data: any): string {
       markdown += `${assessment.description}\n\n`;
     }
     
-    // Tasks
+    // Word Count
+    if (assessment.word_count) {
+      markdown += '## Requirements\n\n';
+      markdown += `**Word Count:** ${assessment.word_count} words\n\n`;
+    }
+    
+    // Instructions
+    if (assessment.instructions) {
+      markdown += '## Instructions\n\n';
+      markdown += `${assessment.instructions}\n\n`;
+    }
+    
+    // Tasks (for multi-task assessments)
     if (assessment.tasks && Array.isArray(assessment.tasks)) {
       markdown += '## Assessment Tasks\n\n';
       assessment.tasks.forEach((task: any, index: number) => {
@@ -197,20 +280,53 @@ function formatStructuredAssessment(data: any): string {
       });
     }
     
-    // Format
-    if (assessment.format) {
-      markdown += '## Format Requirements\n\n';
-      markdown += `${assessment.format}\n\n`;
-    }
-    
     // Submission Guidelines
     if (assessment.submission_guidelines) {
       markdown += '## Submission Guidelines\n\n';
       markdown += `${assessment.submission_guidelines}\n\n`;
     }
     
-    // Marking Criteria
-    if (assessment.marking_criteria && assessment.marking_criteria.criteria) {
+    // Academic Integrity
+    if (assessment.academic_integrity) {
+      markdown += '## Academic Integrity\n\n';
+      markdown += `${assessment.academic_integrity}\n\n`;
+    }
+    
+    // Professional Context
+    if (assessment.professional_context) {
+      markdown += '## Professional Context\n\n';
+      markdown += `${assessment.professional_context}\n\n`;
+    }
+    
+    // Format Requirements
+    if (assessment.format) {
+      markdown += '## Format Requirements\n\n';
+      markdown += `${assessment.format}\n\n`;
+    }
+    
+    // Marking Criteria (new structure with criterion field)
+    if (assessment.marking_criteria && Array.isArray(assessment.marking_criteria)) {
+      markdown += '## Marking Criteria\n\n';
+      assessment.marking_criteria.forEach((criterion: any) => {
+        if (criterion.criterion && criterion.weighting) {
+          markdown += `### ${criterion.criterion} (${criterion.weighting}%)\n\n`;
+          
+          if (criterion.description) {
+            markdown += `${criterion.description}\n\n`;
+          }
+          
+          if (criterion.standards && Array.isArray(criterion.standards)) {
+            criterion.standards.forEach((standard: string, index: number) => {
+              const grade = ['High Distinction', 'Distinction', 'Credit', 'Pass', 'Fail'][index] || `Level ${index + 1}`;
+              markdown += `- **${grade}:** ${standard}\n`;
+            });
+            markdown += '\n';
+          }
+        }
+      });
+    }
+    // Handle legacy marking criteria structure
+    else if (assessment.marking_criteria && assessment.marking_criteria.criteria) {
       markdown += '## Marking Criteria\n\n';
       assessment.marking_criteria.criteria.forEach((criterion: any) => {
         if (criterion.description && criterion.weighting) {
@@ -317,10 +433,13 @@ function formatStructuredAssessment(data: any): string {
 
 // Format content for display
 export function formatAssessmentContent(content: AssessmentContent): string {
+  console.log('Formatting assessment content:', content);
+  
   let formatted = content.output || 'No content available';
   
   // Add mapping information if available
   if (content.mapping && typeof content.mapping === 'object') {
+    console.log('Adding mapping information:', content.mapping);
     formatted += '\n\n## Assessment Mapping\n\n';
     
     // SCEI-HE mapping fields
@@ -360,9 +479,25 @@ export function formatAssessmentContent(content: AssessmentContent): string {
     if (content.mapping.knowledge_evidence) {
       formatted += `**Knowledge Evidence:** ${content.mapping.knowledge_evidence}\n\n`;
     }
+  } else {
+    console.log('No mapping information found');
   }
   
+  console.log('Final formatted content length:', formatted.length);
   return formatted;
+}
+
+// Debug helper function to test assessment content parsing
+export function debugAssessmentContent(rawContent: string): void {
+  console.group('=== Assessment Content Debug ===');
+  console.log('Raw content:', rawContent);
+  
+  const parsed = parseAssessmentContent(rawContent);
+  console.log('Parsed content:', parsed);
+  
+  const formatted = formatAssessmentContent(parsed);
+  console.log('Formatted content:', formatted);
+  console.groupEnd();
 }
 
 // Assessment History Management

@@ -211,12 +211,13 @@ export const useGenerateAssessment = () => {
           throw new Error('Question type is required for questioning assessments');
         }
         requestData.question_type = data.question_type;
-      } else {
-        // Non-questioning assessment - uses component filtering, ignores question_type
+      } else if (user?.domain === 'scei') {
+        // Non-questioning SCEI assessment - uses component filtering (PC/PE/KE)
         requestData.include_pc = data.include_pc ?? true;
         requestData.include_pe = data.include_pe ?? true;
         requestData.include_ke = data.include_ke ?? true;
       }
+      // SCEI-HE non-questioning assessments don't use component filtering
 
       console.log('Sending assessment generation request:', requestData);
       
