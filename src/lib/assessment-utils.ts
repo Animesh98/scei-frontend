@@ -6,6 +6,7 @@ export interface AssessmentContent {
     acecqa_content?: string;
     industry_standard?: string;
     graduate_attribute?: string;
+    benchmark?: string;
     performance_criteria?: string;
     performance_evidence?: string;
     knowledge_evidence?: string;
@@ -46,6 +47,16 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.output)) {
       console.log('Parsing questioning format:', parsed);
       const formattedOutput = formatQuestioningAssessment(parsed.output, parsed.mapping);
+      return {
+        output: formattedOutput,
+        mapping: parsed.mapping || undefined,
+      };
+    }
+    
+    // Handle SCEI-HE format where output is a structured object
+    if (parsed && typeof parsed === 'object' && parsed.output && typeof parsed.output === 'object' && !Array.isArray(parsed.output)) {
+      console.log('Parsing SCEI-HE structured format:', parsed);
+      const formattedOutput = formatStructuredAssessment(parsed.output);
       return {
         output: formattedOutput,
         mapping: parsed.mapping || undefined,
@@ -135,9 +146,223 @@ function formatQuestioningAssessment(questions: QuestionItem[], mapping?: any): 
   return markdown;
 }
 
+// Format SCEI-HE structured assessment into readable markdown
+function formatStructuredAssessment(data: any): string {
+  if (!data) {
+    return 'No structured assessment data available.';
+  }
+
+  let markdown = '# Assessment Task\n\n';
+
+  // Handle new assessment structure (assessment.title, assessment.description, etc.)
+  if (data.assessment && typeof data.assessment === 'object') {
+    const assessment = data.assessment;
+    
+    // Title
+    if (assessment.title) {
+      markdown += `## ${assessment.title}\n\n`;
+    }
+    
+    // Description
+    if (assessment.description) {
+      markdown += '## Description\n\n';
+      markdown += `${assessment.description}\n\n`;
+    }
+    
+    // Tasks
+    if (assessment.tasks && Array.isArray(assessment.tasks)) {
+      markdown += '## Assessment Tasks\n\n';
+      assessment.tasks.forEach((task: any, index: number) => {
+        if (task.topic) {
+          markdown += `### ${task.topic}\n\n`;
+        } else {
+          markdown += `### Task ${index + 1}\n\n`;
+        }
+        
+        if (task.instruction) {
+          markdown += `**Instructions:** ${task.instruction}\n\n`;
+        }
+        
+        if (task.requirements && Array.isArray(task.requirements)) {
+          markdown += '**Requirements:**\n';
+          task.requirements.forEach((req: string) => {
+            markdown += `- ${req}\n`;
+          });
+          markdown += '\n';
+        }
+        
+        if (task.word_count) {
+          markdown += `**Word Count:** ${task.word_count} words\n\n`;
+        }
+      });
+    }
+    
+    // Format
+    if (assessment.format) {
+      markdown += '## Format Requirements\n\n';
+      markdown += `${assessment.format}\n\n`;
+    }
+    
+    // Submission Guidelines
+    if (assessment.submission_guidelines) {
+      markdown += '## Submission Guidelines\n\n';
+      markdown += `${assessment.submission_guidelines}\n\n`;
+    }
+    
+    // Marking Criteria
+    if (assessment.marking_criteria && assessment.marking_criteria.criteria) {
+      markdown += '## Marking Criteria\n\n';
+      assessment.marking_criteria.criteria.forEach((criterion: any) => {
+        if (criterion.description && criterion.weighting) {
+          markdown += `### ${criterion.description} (${criterion.weighting}%)\n\n`;
+          
+          if (criterion.standards && Array.isArray(criterion.standards)) {
+            criterion.standards.forEach((standard: string, index: number) => {
+              const grade = ['High Distinction', 'Distinction', 'Credit', 'Pass', 'Fail'][index] || `Level ${index + 1}`;
+              markdown += `- **${grade}:** ${standard}\n`;
+            });
+            markdown += '\n';
+          }
+        }
+      });
+    }
+  }
+  
+  // Handle original assessment structure (assessment_scenario, participant_profiles, etc.)
+  else {
+    // Assessment Scenario
+    if (data.assessment_scenario) {
+      markdown += '## Assessment Scenario\n\n';
+      markdown += `${data.assessment_scenario}\n\n`;
+    }
+
+    // Participant Profiles
+    if (data.participant_profiles && Array.isArray(data.participant_profiles)) {
+      markdown += '## Participant Profiles\n\n';
+      data.participant_profiles.forEach((profile: any, index: number) => {
+        markdown += `### ${profile.name || `Participant ${index + 1}`}\n\n`;
+        if (profile.role) markdown += `**Role:** ${profile.role}\n\n`;
+        if (profile.age) markdown += `**Age:** ${profile.age}\n\n`;
+        if (profile.background) markdown += `**Background:** ${profile.background}\n\n`;
+        if (profile.challenge) markdown += `**Challenge:** ${profile.challenge}\n\n`;
+      });
+    }
+
+    // Assessment Tasks
+    if (data.assessment_tasks && Array.isArray(data.assessment_tasks)) {
+      markdown += '## Assessment Tasks\n\n';
+      data.assessment_tasks.forEach((task: any, index: number) => {
+        markdown += `### Task ${index + 1}\n\n`;
+        if (task.task) markdown += `**Task:** ${task.task}\n\n`;
+        if (task.requirements) markdown += `**Requirements:** ${task.requirements}\n\n`;
+        if (task.word_count) markdown += `**Word Count:** ${task.word_count} words\n\n`;
+      });
+    }
+
+    // Professional Challenges
+    if (data.professional_challenges && Array.isArray(data.professional_challenges)) {
+      markdown += '## Professional Challenges\n\n';
+      data.professional_challenges.forEach((challenge: string) => {
+        markdown += `- ${challenge}\n`;
+      });
+      markdown += '\n';
+    }
+
+    // Instructions
+    if (data.instructions) {
+      markdown += '## Instructions\n\n';
+      markdown += `${data.instructions}\n\n`;
+    }
+
+    // Marking Criteria (original format)
+    if (data.marking_criteria && data.marking_criteria.criteria) {
+      markdown += '## Marking Criteria\n\n';
+      data.marking_criteria.criteria.forEach((criterion: any) => {
+        if (criterion.description && criterion.weighting) {
+          markdown += `- **${criterion.description}** (${criterion.weighting})\n`;
+        }
+      });
+      markdown += '\n';
+    }
+
+    // Sample Response Outline
+    if (data.sample_response_outline) {
+      markdown += '## Sample Response Outline\n\n';
+      Object.entries(data.sample_response_outline).forEach(([key, value]) => {
+        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        markdown += `**${formattedKey}:** ${value}\n\n`;
+      });
+    }
+
+    // Integrated Standards
+    if (data.integrated_standards) {
+      markdown += '## Integrated Standards\n\n';
+      Object.entries(data.integrated_standards).forEach(([key, value]) => {
+        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        if (Array.isArray(value)) {
+          markdown += `**${formattedKey}:**\n`;
+          value.forEach((item: string) => {
+            markdown += `- ${item}\n`;
+          });
+          markdown += '\n';
+        } else {
+          markdown += `**${formattedKey}:** ${value}\n\n`;
+        }
+      });
+    }
+  }
+  
+  return markdown;
+}
+
 // Format content for display
 export function formatAssessmentContent(content: AssessmentContent): string {
-  return content.output || 'No content available';
+  let formatted = content.output || 'No content available';
+  
+  // Add mapping information if available
+  if (content.mapping && typeof content.mapping === 'object') {
+    formatted += '\n\n## Assessment Mapping\n\n';
+    
+    // SCEI-HE mapping fields
+    if (content.mapping.course_learning_outcome) {
+      formatted += `**Course Learning Outcome:** ${content.mapping.course_learning_outcome}\n\n`;
+    }
+    
+    if (content.mapping.unit_learning_outcome) {
+      formatted += `**Unit Learning Outcome:** ${content.mapping.unit_learning_outcome}\n\n`;
+    }
+    
+    if (content.mapping.graduate_attribute) {
+      formatted += `**Graduate Attribute:** ${content.mapping.graduate_attribute}\n\n`;
+    }
+    
+    if (content.mapping.acecqa_content) {
+      formatted += `**ACECQA Content:** ${content.mapping.acecqa_content}\n\n`;
+    }
+    
+    if (content.mapping.industry_standard) {
+      formatted += `**Industry Standard:** ${content.mapping.industry_standard}\n\n`;
+    }
+    
+    if (content.mapping.benchmark) {
+      formatted += `**Benchmark:** ${content.mapping.benchmark}\n\n`;
+    }
+    
+    // SCEI mapping fields
+    if (content.mapping.performance_criteria) {
+      formatted += `**Performance Criteria:** ${content.mapping.performance_criteria}\n\n`;
+    }
+    
+    if (content.mapping.performance_evidence) {
+      formatted += `**Performance Evidence:** ${content.mapping.performance_evidence}\n\n`;
+    }
+    
+    if (content.mapping.knowledge_evidence) {
+      formatted += `**Knowledge Evidence:** ${content.mapping.knowledge_evidence}\n\n`;
+    }
+  }
+  
+  return formatted;
 }
 
 // Assessment History Management
