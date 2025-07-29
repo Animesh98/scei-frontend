@@ -157,3 +157,36 @@ export interface Presentation {
   theme: string;
   color_scheme: string;
 }
+
+// LaTeX Processing Types
+export interface LatexProcessingRequest {
+  latex_file: File;
+  auto_fix?: boolean;
+}
+
+export interface LatexProcessingResponse {
+  status: 'success' | 'error';
+  message?: string;
+  errors_found?: string[];
+  errors_fixed?: boolean;
+  pdf_created: boolean;
+  compilation_log_excerpt?: string;
+  fixed_latex_available?: boolean;
+  download_fixed_latex_url?: string;
+}
+
+export interface PdfViewerState {
+  pdfUrl?: string;
+  isLoading: boolean;
+  error?: string;
+}
+
+export interface LatexEditorState {
+  content: string;
+  isModified: boolean;
+  isLoading: boolean;
+  error?: string;
+}
+
+export type ProcessingState = 'idle' | 'generating_latex' | 'processing_pdf' | 'completed' | 'error';
+export type ViewMode = 'pdf' | 'latex';

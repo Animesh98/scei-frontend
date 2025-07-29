@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth-store';
+import { LATEX_PROCESSING } from '@/constants';
 import { 
   Unit, 
   User, 
@@ -11,7 +12,9 @@ import {
   Presentation,
   ApiResponse, 
   PaginatedResponse,
-  SceiHEAssessmentMapping
+  SceiHEAssessmentMapping,
+  LatexProcessingRequest,
+  LatexProcessingResponse
 } from '@/types';
 
 // SCEI API payload interface - exported for use in components
@@ -513,5 +516,74 @@ export const useAssessorGuideStatus = (unitId: string) => {
       return response.data.data;
     },
     enabled: !!unitId,
+  });
+};
+
+// LaTeX Processing Hooks
+export const useProcessLatex = () => {
+  return useMutation({
+    mutationFn: async (data: LatexProcessingRequest): Promise<LatexProcessingResponse> => {
+      const formData = new FormData();
+      formData.append('latex_file', data.latex_file);
+      formData.append('auto_fix', data.auto_fix !== false ? 'true' : 'false');
+
+      const response = await fetch(`${LATEX_PROCESSING.API_BASE_URL}${LATEX_PROCESSING.ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          'X-API-Token': LATEX_PROCESSING.API_TOKEN,
+        },
+        body: formData,
+      });
+
+      if (response.ok && response.headers.get('content-type')?.includes('application/pdf')) {
+        // Success - PDF returned
+        const pdfBlob = await response.blob();
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        return {
+          status: 'success',
+          pdf_created: true,
+          pdfUrl, // Add the blob URL for immediate viewing
+        } as LatexProcessingResponse & { pdfUrl: string };
+      } else {
+        // Error - JSON response with details
+        const errorData = await response.json();
+        return {
+          status: 'error',
+          pdf_created: false,
+          ...errorData,
+        };
+      }
+    },
+  });
+};
+
+export const useDownloadFixedLatex = () => {
+  return useMutation({
+    mutationFn: async (downloadUrl: string) => {
+      const response = await fetch(`${LATEX_PROCESSING.API_BASE_URL}${downloadUrl}`, {
+        method: 'GET',
+        headers: {
+          'X-API-Token': LATEX_PROCESSING.API_TOKEN,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download fixed LaTeX file');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      // Trigger download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fixed_latex.tex';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      return { success: true };
+    },
   });
 };

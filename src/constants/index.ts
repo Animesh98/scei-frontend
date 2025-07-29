@@ -38,3 +38,25 @@ export const ROUTES = {
   STUDY_GUIDES: '/study-guides',
   PRESENTATIONS: '/presentations',
 } as const;
+
+// LaTeX Processing Configuration
+export const LATEX_PROCESSING = {
+  API_BASE_URL: process.env.NEXT_PUBLIC_LATEX_API_BASE_URL || 'http://localhost:5000',
+  API_TOKEN: process.env.NEXT_PUBLIC_LATEX_API_TOKEN || 'your_api_token_here',
+  ENDPOINT: '/api/process-latex',
+} as const;
+
+// Processing States
+export const PROCESSING_STATES = {
+  IDLE: 'idle',
+  GENERATING_LATEX: 'generating_latex',
+  PROCESSING_PDF: 'processing_pdf',
+  COMPLETED: 'completed',
+  ERROR: 'error',
+} as const;
+
+// View Modes
+export const VIEW_MODES = {
+  PDF: 'pdf',
+  LATEX: 'latex',
+} as const;
