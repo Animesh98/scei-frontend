@@ -437,52 +437,6 @@ export function formatAssessmentContent(content: AssessmentContent): string {
   
   let formatted = content.output || 'No content available';
   
-  // Add mapping information if available
-  if (content.mapping && typeof content.mapping === 'object') {
-    console.log('Adding mapping information:', content.mapping);
-    formatted += '\n\n## Assessment Mapping\n\n';
-    
-    // SCEI-HE mapping fields
-    if (content.mapping.course_learning_outcome) {
-      formatted += `**Course Learning Outcome:** ${content.mapping.course_learning_outcome}\n\n`;
-    }
-    
-    if (content.mapping.unit_learning_outcome) {
-      formatted += `**Unit Learning Outcome:** ${content.mapping.unit_learning_outcome}\n\n`;
-    }
-    
-    if (content.mapping.graduate_attribute) {
-      formatted += `**Graduate Attribute:** ${content.mapping.graduate_attribute}\n\n`;
-    }
-    
-    if (content.mapping.acecqa_content) {
-      formatted += `**ACECQA Content:** ${content.mapping.acecqa_content}\n\n`;
-    }
-    
-    if (content.mapping.industry_standard) {
-      formatted += `**Industry Standard:** ${content.mapping.industry_standard}\n\n`;
-    }
-    
-    if (content.mapping.benchmark) {
-      formatted += `**Benchmark:** ${content.mapping.benchmark}\n\n`;
-    }
-    
-    // SCEI mapping fields
-    if (content.mapping.performance_criteria) {
-      formatted += `**Performance Criteria:** ${content.mapping.performance_criteria}\n\n`;
-    }
-    
-    if (content.mapping.performance_evidence) {
-      formatted += `**Performance Evidence:** ${content.mapping.performance_evidence}\n\n`;
-    }
-    
-    if (content.mapping.knowledge_evidence) {
-      formatted += `**Knowledge Evidence:** ${content.mapping.knowledge_evidence}\n\n`;
-    }
-  } else {
-    console.log('No mapping information found');
-  }
-  
   console.log('Final formatted content length:', formatted.length);
   return formatted;
 }

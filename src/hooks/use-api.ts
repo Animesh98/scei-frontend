@@ -29,8 +29,9 @@ export interface SceiUnitPayload {
 
 // Units
 export const useUnits = (page: number = 0, limit: number = 10) => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['units', page, limit],
+    queryKey: ['units', user?.domain, page, limit],
     queryFn: async () => {
       const response = await api.get<ApiResponse<PaginatedResponse<Unit>>>(`/units?page=${page}&limit=${limit}`);
       return response.data.data;
@@ -40,8 +41,9 @@ export const useUnits = (page: number = 0, limit: number = 10) => {
 
 // Hook to fetch all units (for search functionality)
 export const useAllUnits = () => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['units', 'all'],
+    queryKey: ['units', user?.domain, 'all'],
     queryFn: async () => {
       // Fetch with a high limit to get all units
       const response = await api.get<ApiResponse<PaginatedResponse<Unit>>>(`/units?page=0&limit=10000`);
@@ -53,8 +55,9 @@ export const useAllUnits = () => {
 };
 
 export const useUnit = (id: string) => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['unit', id],
+    queryKey: ['unit', user?.domain, id],
     queryFn: async () => {
       const response = await api.get<ApiResponse<Unit>>(`/units/${id}`);
       return response.data.data;
@@ -73,7 +76,8 @@ export const useCreateUnit = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['units'] });
+      const { user } = useAuthStore.getState();
+      queryClient.invalidateQueries({ queryKey: ['units', user?.domain] });
     },
   });
 };
@@ -88,8 +92,9 @@ export const useUpdateUnit = () => {
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['units'] });
-      queryClient.invalidateQueries({ queryKey: ['unit', variables.id] });
+      const { user } = useAuthStore.getState();
+      queryClient.invalidateQueries({ queryKey: ['units', user?.domain] });
+      queryClient.invalidateQueries({ queryKey: ['unit', user?.domain, variables.id] });
     },
   });
 };
@@ -409,8 +414,9 @@ export const useGenerateStudyGuide = () => {
 };
 
 export const useStudyGuide = (unitId: string) => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['study-guide', unitId],
+    queryKey: ['study-guide', user?.domain, unitId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<StudyGuide>>(`/study-guides/${unitId}/latex`);
       return response.data.data;
@@ -436,8 +442,9 @@ export const useGeneratePresentation = () => {
 };
 
 export const usePresentation = (unitId: string) => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['presentation', unitId],
+    queryKey: ['presentation', user?.domain, unitId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<Presentation>>(`/presentations/${unitId}/beamer`);
       return response.data.data;
@@ -503,8 +510,9 @@ export const useUploadAssessorGuide = () => {
 
 // Assessor Guide Status Hook
 export const useAssessorGuideStatus = (unitId: string) => {
+  const { user } = useAuthStore.getState();
   return useQuery({
-    queryKey: ['assessor-guide-status', unitId],
+    queryKey: ['assessor-guide-status', user?.domain, unitId],
     queryFn: async () => {
       const response = await api.get<ApiResponse<{
         total_chunks: number;
