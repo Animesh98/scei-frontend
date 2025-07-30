@@ -456,25 +456,20 @@ export const usePresentation = (unitId: string) => {
 export const useFetchUnitDetails = () => {
   return useMutation({
     mutationFn: async (unitCode: string) => {
-      const response = await api.get<ApiResponse<{
-        unit_code: string;
-        unit_title: string;
-        competency: string;
-        domain: string;
-        unit_elements: Array<{
-          element: string;
-          criterias: string[];
-        }>;
-        unit_performance_evidences: Array<{
-          evidence: string;
-          subtopics: string[];
-        }>;
-        unit_knowledges: Array<{
-          topic: string;
-          subtopics: string[];
-        }>;
-      }>>(`/unit-details/${unitCode}`);
-      return response.data;
+      const response = await fetch(`http://localhost:5000/api/unit-details/${unitCode}`, {
+        method: 'GET',
+        headers: {
+          'X-API-Token': LATEX_PROCESSING.API_TOKEN,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch unit details: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
     },
   });
 };
