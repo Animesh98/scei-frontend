@@ -469,7 +469,26 @@ export const useFetchUnitDetails = () => {
       }
 
       const data = await response.json();
-      return data;
+      
+      // Check if the API returned an error
+      if (data.status === 'error') {
+        throw new Error(data.message || 'Failed to fetch unit details');
+      }
+      
+      // Map the localhost:5000 API response structure to match what the frontend expects
+      // The API returns: { status: "success", unit_code: "...", unit_details: {...} }
+      // Frontend expects: { data: {...} }
+      return {
+        data: {
+          unit_code: data.unit_code,
+          unit_title: data.unit_details?.unit_title,
+          competency: data.unit_details?.competency,
+          domain: data.unit_details?.domain,
+          unit_elements: data.unit_details?.unit_elements,
+          unit_performance_evidences: data.unit_details?.unit_performance_evidences,
+          unit_knowledges: data.unit_details?.unit_knowledges
+        }
+      };
     },
   });
 };
