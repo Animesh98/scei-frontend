@@ -2,7 +2,7 @@
 
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth-store';
 import { useUnits } from '@/hooks/use-api';

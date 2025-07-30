@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
@@ -518,4 +518,12 @@ const AssessmentsPage = () => {
   );
 };
 
-export default AssessmentsPage;
+const AssessmentsPageWithSuspense = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AssessmentsPage />
+    </Suspense>
+  );
+};
+
+export default AssessmentsPageWithSuspense;

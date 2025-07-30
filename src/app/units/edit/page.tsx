@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,6 @@ import { Edit, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 const EditUnitPage = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const unitId = searchParams?.get('id') || '';
   
@@ -47,8 +46,9 @@ const EditUnitPage = () => {
       
       // Return result for form to handle any post-update actions
       return result;
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update unit');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update unit';
+      toast.error(errorMessage);
       throw error; // Re-throw to let form handle loading state
     }
   };
@@ -102,4 +102,12 @@ const EditUnitPage = () => {
   );
 };
 
-export default EditUnitPage;
+const EditUnitPageWithSuspense = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditUnitPage />
+    </Suspense>
+  );
+};
+
+export default EditUnitPageWithSuspense;

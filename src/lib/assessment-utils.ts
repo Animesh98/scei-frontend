@@ -97,7 +97,7 @@ export function parseAssessmentContent(rawContent: string): AssessmentContent {
 }
 
 // Format questioning assessment array into readable markdown
-function formatQuestioningAssessment(questions: QuestionItem[], mapping?: any): string {
+function formatQuestioningAssessment(questions: QuestionItem[], mapping?: Record<string, unknown>): string {
   if (!Array.isArray(questions) || questions.length === 0) {
     return 'No questions available.';
   }
@@ -151,7 +151,7 @@ function formatQuestioningAssessment(questions: QuestionItem[], mapping?: any): 
 }
 
 // Format SCEI-HE structured assessment into readable markdown
-function formatStructuredAssessment(data: any): string {
+function formatStructuredAssessment(data: Record<string, unknown>): string {
   if (!data) {
     return 'No structured assessment data available.';
   }
@@ -435,7 +435,7 @@ function formatStructuredAssessment(data: any): string {
 export function formatAssessmentContent(content: AssessmentContent): string {
   console.log('Formatting assessment content:', content);
   
-  let formatted = content.output || 'No content available';
+  const formatted = content.output || 'No content available';
   
   console.log('Final formatted content length:', formatted.length);
   return formatted;

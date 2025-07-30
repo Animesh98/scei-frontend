@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
@@ -466,4 +466,12 @@ const PresentationsPage = () => {
   );
 };
 
-export default PresentationsPage;
+const PresentationsPageWithSuspense = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PresentationsPage />
+    </Suspense>
+  );
+};
+
+export default PresentationsPageWithSuspense;

@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/auth-store';
 import { Unit, UnitElement, PerformanceEvidence, KnowledgeEvidence, Content, Benchmark } from '@/types';
 import { useFetchUnitDetails, SceiUnitPayload, useUploadAssessorGuide, useAssessorGuideStatus } from '@/hooks/use-api';
@@ -32,12 +31,11 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
-import LoadingSpinner from '@/components/ui/loading-spinner';
 
 interface ComprehensiveUnitFormProps {
   unit?: Unit;
   isEditing?: boolean;
-  onSubmit: (data: SceiUnitPayload) => Promise<Unit | any>;
+  onSubmit: (data: SceiUnitPayload) => Promise<Unit | unknown>;
   isSubmitting?: boolean;
 }
 
@@ -103,8 +101,8 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
     unit?.benchmarks || [{ uni_name: '', course_outline: '', units: [''] }]
   );
 
-  // Active tab state
-  const [activeTab, setActiveTab] = useState('basic');
+  // Active tab state (currently not used but available for future enhancement)
+  // const [activeTab, setActiveTab] = useState('basic');
 
   // Assessor Guide Upload States
   const [assessorGuideFile, setAssessorGuideFile] = useState<File | null>(null);
@@ -178,13 +176,10 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
       }
 
       toast.success('Unit details fetched successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching unit details:', error);
-      if (error?.response?.status === 500) {
-        toast.error('Invalid unit code. Please check and try again.');
-      } else {
-        toast.error('Failed to fetch unit details. Please try again.');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch unit details. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -248,7 +243,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
   };
 
   // Update unit element
-  const updateUnitElement = (index: number, field: keyof UnitElement, value: any) => {
+  const updateUnitElement = (index: number, field: keyof UnitElement, value: string | string[]) => {
     const updated = [...unitElements];
     updated[index] = { ...updated[index], [field]: value };
     setUnitElements(updated);
@@ -289,7 +284,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
     }
   };
 
-  const updatePerformanceEvidence = (index: number, field: keyof PerformanceEvidence, value: any) => {
+  const updatePerformanceEvidence = (index: number, field: keyof PerformanceEvidence, value: string | string[]) => {
     const updated = [...performanceEvidences];
     updated[index] = { ...updated[index], [field]: value };
     setPerformanceEvidences(updated);
@@ -327,7 +322,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
     }
   };
 
-  const updateKnowledgeEvidence = (index: number, field: keyof KnowledgeEvidence, value: any) => {
+  const updateKnowledgeEvidence = (index: number, field: keyof KnowledgeEvidence, value: string | string[]) => {
     const updated = [...knowledgeEvidences];
     updated[index] = { ...updated[index], [field]: value };
     setKnowledgeEvidences(updated);
@@ -416,9 +411,10 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
       
       // Refetch status
       refetchStatus();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading assessor guide:', error);
-      toast.error('Failed to upload assessor guide. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload assessor guide. Please try again.';
+      toast.error(errorMessage);
     }
   };
 
@@ -434,7 +430,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
       return;
     }
 
-    let apiPayload: any;
+    let apiPayload: SceiUnitPayload;
 
     if (isHE) {
       // SCEI-HE payload format
@@ -1495,7 +1491,7 @@ const ComprehensiveUnitForm: React.FC<ComprehensiveUnitFormProps> = ({
         <Alert className="border-blue-200 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>Unit created successfully!</strong> To generate study guides and presentations, please upload an assessor guide PDF in the "Assessor Guide" tab above.
+            <strong>Unit created successfully!</strong> To generate study guides and presentations, please upload an assessor guide PDF in the &quot;Assessor Guide&quot; tab above.
           </AlertDescription>
         </Alert>
       )}

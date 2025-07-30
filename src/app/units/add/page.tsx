@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
 import ComprehensiveUnitForm from '@/components/forms/comprehensive-unit-form';
@@ -8,7 +7,6 @@ import { useCreateUnit, SceiUnitPayload } from '@/hooks/use-api';
 import { toast } from 'sonner';
 
 const AddUnitPage = () => {
-  const router = useRouter();
   const createUnitMutation = useCreateUnit();
 
   const handleSubmit = async (unitData: SceiUnitPayload) => {
@@ -18,8 +16,9 @@ const AddUnitPage = () => {
       
       // Return the result so the form can handle post-save actions
       return result;
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create unit');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create unit';
+      toast.error(errorMessage);
       throw error; // Re-throw to let form handle loading state
     }
   };

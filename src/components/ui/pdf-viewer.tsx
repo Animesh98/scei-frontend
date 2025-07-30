@@ -196,7 +196,7 @@ const PdfViewer = ({
         </div>
         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
           <p>
-            If the PDF doesn't display properly, try downloading it or opening in a new tab.
+            If the PDF doesn&apos;t display properly, try downloading it or opening in a new tab.
             {' '}
             <button
               onClick={() => window.open(pdfUrl, '_blank')}
