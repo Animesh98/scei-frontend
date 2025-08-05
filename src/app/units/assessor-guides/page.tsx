@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import UnitSelector from '@/components/ui/unit-selector';
-import { useUnits } from '@/hooks/use-api';
+import { useUnits, useUploadAssessorGuide, useAssessorGuideStatus } from '@/hooks/use-api';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import EmptyState from '@/components/ui/empty-state';
 import PdfViewer from '@/components/ui/pdf-viewer';
-import { UserCheck, Download, FileText, Eye, RefreshCw, Loader2, ChevronDown } from 'lucide-react';
+import { UserCheck, Download, FileText, Eye, RefreshCw, Loader2, ChevronDown, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/constants';
+import { useRouter } from 'next/navigation';
 
 interface AssessmentType {
   assessment_type_id: string;
@@ -34,6 +35,7 @@ interface AssessmentTypesResponse {
 
 const AssessorGuidesPage = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [selectedUnit, setSelectedUnit] = useState(searchParams?.get('unit') || '');
   const [selectedAssessmentTypes, setSelectedAssessmentTypes] = useState<string[]>([]);
   const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>([]);
@@ -43,8 +45,12 @@ const AssessorGuidesPage = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [generatedGuide, setGeneratedGuide] = useState<any>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAssessorGuideSaved, setIsAssessorGuideSaved] = useState(false);
 
   const { data: unitsData } = useUnits(0, 100);
+  const uploadAssessorGuideMutation = useUploadAssessorGuide();
+  const { data: assessorGuideStatus, refetch: refetchAssessorGuideStatus } = useAssessorGuideStatus(selectedUnit);
 
   const fetchAssessmentTypes = async (unitCode: string) => {
     setIsLoadingAssessmentTypes(true);
@@ -83,6 +89,7 @@ const AssessorGuidesPage = () => {
     setUnitInfo(null);
     setPdfUrl(null);
     setGeneratedGuide(null);
+    setIsAssessorGuideSaved(false);
     
     // Find the selected unit to get its unit_code
     const selectedUnitData = unitsData?.rows?.find(unit => unit._id === unitId);
@@ -119,6 +126,7 @@ const AssessorGuidesPage = () => {
     }
 
     setIsGenerating(true);
+    setIsAssessorGuideSaved(false); // Reset saved state when generating new guide
     try {
       const response = await fetch(`${API_BASE_URL}/assessor-guides/generate/${unitInfo.unit_code}`, {
         method: 'POST',
@@ -178,6 +186,53 @@ const AssessorGuidesPage = () => {
     const downloadUrl = `${API_BASE_URL}/assessor-guides/${unitInfo.unit_code}/download-pdf`;
     window.open(downloadUrl, '_blank');
     toast.success('Download started!');
+  };
+
+  const handleSaveAssessorGuide = async () => {
+    // If already saved, navigate to study guide page
+    if (isAssessorGuideSaved) {
+      handleGenerateStudyGuide();
+      return;
+    }
+
+    if (!pdfUrl || !selectedUnit || !unitInfo?.unit_code) {
+      toast.error('Unable to save assessor guide');
+      return;
+    }
+
+    setIsSaving(true);
+    
+    // Show initial processing message
+    toast.info(`Preparing to save assessor guide for ${unitInfo.unit_code}...`);
+    
+    try {
+      // Convert the PDF URL to a File object
+      const response = await fetch(pdfUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `${unitInfo.unit_code}_AssessorGuide.pdf`, { type: 'application/pdf' });
+
+      // Show upload progress message
+      toast.info('Uploading assessor guide to unit database...');
+
+      await uploadAssessorGuideMutation.mutateAsync({
+        assessor_guide_file: file,
+        unit_id: selectedUnit,
+        unit_code: unitInfo.unit_code
+      });
+
+      toast.success(`Assessor guide saved to ${unitInfo.unit_code}! You can now generate study guides.`);
+      setIsAssessorGuideSaved(true);
+      refetchAssessorGuideStatus();
+    } catch (error: any) {
+      toast.error('Failed to save assessor guide. Please try again.');
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateStudyGuide = () => {
+    router.push(`/units/study-guides?unit=${selectedUnit}`);
   };
 
   const allSelected = selectedAssessmentTypes.length === assessmentTypes.length;
@@ -321,11 +376,35 @@ const AssessorGuidesPage = () => {
 
           {/* PDF Viewer */}
           {pdfUrl && (
-            <PdfViewer
-              pdfUrl={pdfUrl}
-              fileName={`${unitInfo?.unit_code}_AssessorGuide.pdf`}
-              isLoading={false}
-            />
+            <div className="space-y-3">
+              {/* Helper message */}
+              {!isAssessorGuideSaved && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    </div>
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="font-medium">Save this assessor guide to your unit</p>
+                      <p className="text-blue-600 dark:text-blue-300 mt-1">
+                        Saving will store this guide in <span className="font-medium">{unitInfo?.unit_code}</span> and enable study guide generation for this unit.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <PdfViewer
+                pdfUrl={pdfUrl}
+                fileName={`${unitInfo?.unit_code}_AssessorGuide.pdf`}
+                isLoading={false}
+                showSaveButton={true}
+                onSaveAssessorGuide={handleSaveAssessorGuide}
+                isSaving={isSaving}
+                saveButtonText={isAssessorGuideSaved ? 'Generate Study Guide' : 'Save Assessor Guide'}
+                saveButtonVariant={isAssessorGuideSaved ? 'default' : 'outline'}
+              />
+            </div>
           )}
 
           {/* Empty State */}

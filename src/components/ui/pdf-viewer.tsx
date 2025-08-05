@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle, Loader2 } from 'lucide-react';
 import { PdfViewerState } from '@/types';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
@@ -14,6 +14,11 @@ interface PdfViewerProps {
   isLoading?: boolean;
   error?: string;
   className?: string;
+  showSaveButton?: boolean;
+  onSaveAssessorGuide?: () => void;
+  isSaving?: boolean;
+  saveButtonText?: string;
+  saveButtonVariant?: 'default' | 'outline' | 'destructive' | 'secondary' | 'ghost' | 'link';
 }
 
 const PdfViewer = ({ 
@@ -21,7 +26,12 @@ const PdfViewer = ({
   fileName = 'document.pdf', 
   isLoading = false, 
   error,
-  className = ''
+  className = '',
+  showSaveButton = false,
+  onSaveAssessorGuide,
+  isSaving = false,
+  saveButtonText = 'Save Assessor Guide',
+  saveButtonVariant = 'default'
 }: PdfViewerProps) => {
   const [viewerError, setViewerError] = useState<string | null>(null);
 
@@ -119,6 +129,23 @@ const PdfViewer = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">PDF Viewer</CardTitle>
           <div className="flex items-center space-x-2">
+            {showSaveButton && onSaveAssessorGuide && (
+              <Button
+                variant={saveButtonVariant}
+                size="sm"
+                onClick={onSaveAssessorGuide}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-b-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  saveButtonText
+                )}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
