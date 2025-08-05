@@ -19,7 +19,7 @@ import LatexEditor from '@/components/ui/latex-editor';
 import ViewToggle from '@/components/ui/view-toggle';
 import { BookOpen, Download, FileText, Eye, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROCESSING_STATES, VIEW_MODES } from '@/constants';
+import { PROCESSING_STATES, VIEW_MODES, API_BASE_URL } from '@/constants';
 import { ProcessingState, ViewMode } from '@/types';
 
 const StudyGuidesPage = () => {
@@ -143,8 +143,8 @@ const StudyGuidesPage = () => {
     }
 
     try {
-      // Create download URL
-      const downloadUrl = `http://localhost:7071/api/study-guides/${selectedUnit}/download-latex`;
+      // Create download URL using Azure API
+      const downloadUrl = `${API_BASE_URL}/study-guides/${selectedUnit}/download-latex`;
       window.open(downloadUrl, '_blank');
       toast.success('Download started!');
     } catch (error: any) {

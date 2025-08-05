@@ -609,3 +609,93 @@ export const useDownloadFixedLatex = () => {
     },
   });
 };
+
+// Assessor Guides
+export const useAssessorGuideAssessmentTypes = (unitCode: string) => {
+  return useQuery({
+    queryKey: ['assessor-guide-assessment-types', unitCode],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        unit_code: string;
+        unit_title: string;
+        available_assessment_types: Array<{
+          assessment_type_id: string;
+          assessment_name: string;
+          available: boolean;
+          has_content: boolean;
+        }>;
+        total_assessment_types: number;
+      }>>(`/assessor-guides/${unitCode}/assessment-types`);
+      return response.data.data;
+    },
+    enabled: !!unitCode,
+  });
+};
+
+export const useGenerateAssessorGuide = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_code: string;
+      selected_assessment_types?: string[];
+      generation_options?: {
+        professional_format?: boolean;
+        include_rubrics?: boolean;
+        include_guidelines?: boolean;
+        ai_enhanced_content?: boolean;
+      };
+    }) => {
+      const response = await api.post<ApiResponse<{
+        pdf_generated: boolean;
+        unit_code: string;
+        assessment_types_used: string[];
+        total_assessment_types_count: number;
+        unit_assessment_types_count: number;
+        format: string;
+        features: {
+          ai_content_processing: boolean;
+          specific_rubrics: boolean;
+          professional_layout: boolean;
+          table_of_contents: boolean;
+        };
+        generated_at: string;
+      }>>(`/assessor-guides/generate/${data.unit_code}`, {
+        selected_assessment_types: data.selected_assessment_types || [],
+        generation_options: {
+          professional_format: true,
+          include_rubrics: true,
+          include_guidelines: true,
+          ai_enhanced_content: true,
+          ...data.generation_options
+        }
+      });
+      return response.data;
+    },
+  });
+};
+
+export const useAssessorGuidePdfInfo = (unitCode: string) => {
+  return useQuery({
+    queryKey: ['assessor-guide-pdf-info', unitCode],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        unit_info: {
+          unit_code: string;
+          unit_title: string;
+          competency: string;
+        };
+        pdf_available: boolean;
+        generated_at: string;
+        status: string;
+        file_size_bytes: number;
+        assessment_types_included: string[];
+        features: {
+          ai_enhanced_content: boolean;
+          specific_rubrics: boolean;
+          professional_layout: boolean;
+        };
+      }>>(`/assessor-guides/${unitCode}/pdf`);
+      return response.data.data;
+    },
+    enabled: !!unitCode,
+  });
+};

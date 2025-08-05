@@ -20,7 +20,8 @@ import {
   LogOut,
   Menu,
   Home,
-  List
+  List,
+  UserCheck
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -35,6 +36,7 @@ const Sidebar = () => {
     { href: '/units/add', label: 'Add Unit', icon: Plus },
     { href: '/units/edit', label: 'Edit Unit', icon: Edit },
     { href: '/units/assessments', label: 'Generate Assessments', icon: FileText },
+    { href: '/units/assessor-guides', label: 'Generate Assessor Guide', icon: UserCheck },
     { href: '/units/study-guides', label: 'Generate Study Guide', icon: BookOpen },
     { href: '/units/presentations', label: 'Generate Presentation', icon: Presentation },
   ];
