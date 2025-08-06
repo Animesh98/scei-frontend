@@ -58,9 +58,8 @@ export interface Assessment {
   // SCEI uses generated_text, SCEI-HE uses assessment
   generated_text?: string;
   assessment?: string;
-  element_id?: number;
-  criteria_id?: number;
-  question_type_name?: string; // For SCEI-HE questioning assessments
+  question_type?: string; // For questioning assessments (e.g., "direct_knowledge", "procedural")
+  question_type_name?: string; // Human-readable name for question type
   mappings?: AssessmentMapping | SceiHEAssessmentMapping[];
   scei_mappings?: SceiAssessmentMapping[]; // For SCEI assessments
 }

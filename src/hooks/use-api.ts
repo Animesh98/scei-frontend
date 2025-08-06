@@ -266,8 +266,7 @@ export const useSaveAssessment = () => {
       unit_id: string;
       type: string;
       text: string;
-      element_id?: number;
-      criteria_id?: number;
+      question_type?: string; // For questioning assessments
       mappings?: SceiHEAssessmentMapping[]; // Optional mappings for SCEI-HE
     }) => {
       const { user } = useAuthStore.getState();
@@ -281,12 +280,10 @@ export const useSaveAssessment = () => {
         text: data.text,
       };
 
-      // Add element_id and criteria_id for both domains if provided
-      if (data.element_id !== undefined) {
-        saveData.element_id = data.element_id;
-      }
-      if (data.criteria_id !== undefined) {
-        saveData.criteria_id = data.criteria_id;
+      // For questioning assessments, include question_type
+      const isQuestioningType = isQuestioningAssessmentType(data.type);
+      if (isQuestioningType && data.question_type) {
+        saveData.question_type = data.question_type;
       }
 
       // Add mappings for SCEI-HE
@@ -311,16 +308,20 @@ export const useSaveAssessment = () => {
   });
 };
 
-export const useAssessment = (unitId: string, type: string, elementId?: number, criteriaId?: number) => {
+export const useAssessment = (unitId: string, type: string, questionType?: string) => {
   const { user } = useAuthStore.getState();
   
   return useQuery({
-    queryKey: ['assessment', user?.domain, unitId, type, elementId, criteriaId],
+    queryKey: ['assessment', user?.domain, unitId, type, questionType],
     queryFn: async () => {
       const baseEndpoint = user?.domain === 'scei-he' ? '/assessments/he' : '/assessments';
       let url = `${baseEndpoint}/${unitId}?type=${type}`;
-      if (elementId !== undefined) url += `&element_id=${elementId}`;
-      if (criteriaId !== undefined) url += `&criteria_id=${criteriaId}`;
+      
+      // For questioning assessments, include question_type
+      const isQuestioningType = isQuestioningAssessmentType(type);
+      if (isQuestioningType && questionType) {
+        url += `&question_type=${questionType}`;
+      }
       
       console.log('Using assessment fetch endpoint:', url, 'for domain:', user?.domain);
       

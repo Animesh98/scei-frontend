@@ -59,18 +59,12 @@ const AssessmentsPage = () => {
 
   // Fetch saved assessment when unit and type are selected
   const shouldFetchAssessment = selectedUnit && selectedAssessmentType;
-  const elementId = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING && selectedQuestionType 
-    ? Math.abs(selectedQuestionType.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) 
-    : undefined;
-  const criteriaId = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING && selectedQuestionType 
-    ? Math.abs(selectedQuestionType.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) + 1
-    : undefined;
-
+  const isQuestioning = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING;
+  
   const { data: existingAssessment, refetch: refetchAssessment } = useAssessment(
     shouldFetchAssessment ? selectedUnit : '',
     shouldFetchAssessment ? selectedAssessmentType : '',
-    elementId,
-    criteriaId
+    isQuestioning && selectedQuestionType ? selectedQuestionType : undefined
   );
 
   // Load existing assessment when available
@@ -222,8 +216,7 @@ const AssessmentsPage = () => {
       };
 
       if (selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING && selectedQuestionType) {
-        data.element_id = elementId;
-        data.criteria_id = criteriaId;
+        data.question_type = selectedQuestionType;
       }
 
       await saveMutation.mutateAsync(data);
@@ -233,8 +226,7 @@ const AssessmentsPage = () => {
     }
   };
 
-  // Determine if selected assessment type is questioning (same ID for both SCEI and SCEI-HE)
-  const isQuestioning = selectedAssessmentType === ASSESSMENT_TYPES.QUESTIONING;
+  // Note: isQuestioning is already defined above for fetching logic
 
   // Helper functions for history
   const handleSelectHistoryItem = (item: AssessmentHistoryItem) => {

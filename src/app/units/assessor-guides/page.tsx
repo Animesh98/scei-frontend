@@ -92,7 +92,7 @@ const AssessorGuidesPage = () => {
     setIsAssessorGuideSaved(false);
     
     // Find the selected unit to get its unit_code
-    const selectedUnitData = unitsData?.rows?.find(unit => unit._id === unitId);
+    const selectedUnitData = unitsData?.rows?.find(unit => unit.id === unitId);
     if (selectedUnitData?.unit_code) {
       fetchAssessmentTypes(selectedUnitData.unit_code);
     }
@@ -381,9 +381,7 @@ const AssessorGuidesPage = () => {
               {!isAssessorGuideSaved && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <div className="flex items-start space-x-2">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    </div>
+
                     <div className="text-sm text-blue-800 dark:text-blue-200">
                       <p className="font-medium">Save this assessor guide to your unit</p>
                       <p className="text-blue-600 dark:text-blue-300 mt-1">
