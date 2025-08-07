@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UnitSelector from '@/components/ui/unit-selector';
-import { useUnits, useGeneratePresentation, usePresentation, useProcessLatex } from '@/hooks/use-api';
+import { useUnits, usePresentation, useProcessLatex } from '@/hooks/use-api';
+import { useJobManager } from '@/hooks/use-job-manager';
+import GenerationOptions from '@/components/ui/generation-options';
+import GenerationProgress from '@/components/ui/generation-progress';
+import GenerationResults from '@/components/ui/generation-results';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import EmptyState from '@/components/ui/empty-state';
 import PdfViewer from '@/components/ui/pdf-viewer';
@@ -17,19 +21,13 @@ import LatexEditor from '@/components/ui/latex-editor';
 import ViewToggle from '@/components/ui/view-toggle';
 import { Presentation, Download, FileText, Eye, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROCESSING_STATES, VIEW_MODES, API_BASE_URL } from '@/constants';
-import { ProcessingState, ViewMode } from '@/types';
+import { VIEW_MODES, API_BASE_URL } from '@/constants';
+import { ViewMode } from '@/types';
+import { GenerationConfig } from '@/components/ui/generation-options';
 
 const PresentationsPage = () => {
   const searchParams = useSearchParams();
   const [selectedUnit, setSelectedUnit] = useState(searchParams?.get('unit') || '');
-  const [generationMethod, setGenerationMethod] = useState('dynamic_slides');
-  const [theme, setTheme] = useState('madrid');
-  const [colorScheme, setColorScheme] = useState('default');
-  const [generatedContent, setGeneratedContent] = useState('');
-  
-  // Enhanced state for LaTeX processing workflow
-  const [processingState, setProcessingState] = useState<ProcessingState>(PROCESSING_STATES.IDLE);
   const [viewMode, setViewMode] = useState<ViewMode>(VIEW_MODES.PDF);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [latexContent, setLatexContent] = useState('');
@@ -37,38 +35,45 @@ const PresentationsPage = () => {
   const [processingError, setProcessingError] = useState<string | null>(null);
 
   const { data: unitsData } = useUnits(0, 100);
-  const generateMutation = useGeneratePresentation();
   const processLatexMutation = useProcessLatex();
   const { data: existingPresentation, refetch: refetchPresentation } = usePresentation(selectedUnit);
+  
+  // New job manager for asynchronous generation
+  const {
+    startGeneration,
+    cancelGeneration,
+    reset: resetJobManager,
+    progress,
+    result,
+    isGenerating,
+    isCompleted,
+    isFailed,
+    hasError
+  } = useJobManager();
 
-  const generationMethods = {
-    'dynamic_slides': 'Standard Generation - Generates a standard document, takes 8-10 mins to render',
-    'dynamic_multi_call': 'Detailed Generation - Generates much detailed and longer document, takes 12-15 mins',
-  };
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Presentations Page - State Update:', {
+      isGenerating,
+      hasProgress: !!progress,
+      progress: progress,
+      isCompleted,
+      isFailed,
+      hasError,
+      hasResult: !!result
+    });
+  }, [isGenerating, progress, isCompleted, isFailed, hasError, result]);
 
-  const themes = {
-    'madrid': 'Professional Madrid Theme',
-    'berlin': 'Clean Berlin Theme',
-    'warsaw': 'Corporate Warsaw Theme',
-    'copenhagen': 'Minimal Copenhagen Theme',
-    'singapore': 'Simple Singapore Theme',
-  };
+  const selectedUnitData = unitsData?.rows?.find(unit => unit._id === selectedUnit);
 
-  const colorSchemes = {
-    'default': 'Blue-based Professional Scheme',
-    'educational': 'Green and Orange Educational Scheme',
-    'corporate': 'Gray and Blue Corporate Scheme',
-    'modern': 'Purple and Teal Modern Scheme',
-  };
 
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnit(unitId);
-    setGeneratedContent('');
+    resetJobManager();
     resetProcessingState();
   };
 
   const resetProcessingState = () => {
-    setProcessingState(PROCESSING_STATES.IDLE);
     setViewMode(VIEW_MODES.PDF);
     setPdfUrl(null);
     setLatexContent('');
@@ -78,7 +83,6 @@ const PresentationsPage = () => {
   
   const processLatexToPdf = async (latexFileContent: string) => {
     try {
-      setProcessingState(PROCESSING_STATES.PROCESSING_PDF);
       setProcessingError(null);
       
       // Create a file from the LaTeX content
@@ -92,10 +96,8 @@ const PresentationsPage = () => {
 
       if (result.status === 'success' && result.pdf_created) {
         setPdfUrl((result as any).pdfUrl);
-        setProcessingState(PROCESSING_STATES.COMPLETED);
         toast.success('PDF generated successfully!');
       } else {
-        setProcessingState(PROCESSING_STATES.ERROR);
         setProcessingError(result.message || 'Failed to generate PDF');
         
         if (result.errors_found && result.errors_found.length > 0) {
@@ -105,53 +107,41 @@ const PresentationsPage = () => {
         }
       }
     } catch (error: any) {
-      setProcessingState(PROCESSING_STATES.ERROR);
       setProcessingError(error.message || 'An unexpected error occurred');
       toast.error('Failed to process LaTeX file');
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (config: GenerationConfig) => {
     if (!selectedUnit) {
       toast.error('Please select a unit');
       return;
     }
 
     try {
-      setProcessingState(PROCESSING_STATES.GENERATING_LATEX);
       resetProcessingState();
-      setProcessingState(PROCESSING_STATES.GENERATING_LATEX);
       
-      // Get user's timezone
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      const result = await generateMutation.mutateAsync({
-        unit_id: selectedUnit,
-        generation_method: generationMethod,
-        theme,
-        color_scheme: colorScheme,
-        timezone: userTimezone,
+      await startGeneration('presentation', selectedUnit, {
+        generation_method: config.generation_method,
+        theme: config.theme,
+        color_scheme: config.color_scheme,
+        user_timezone: config.user_timezone
       });
-
-      if (result.status) {
-        setGeneratedContent('LaTeX generated, now processing to generate PDF...');
-        toast.success('Beamer LaTeX generated successfully!');
-        refetchPresentation();
-        
-        // Fetch the generated LaTeX content
-        const updatedPresentation = await refetchPresentation();
-        if (updatedPresentation.data?.beamer_content) {
-          setLatexContent(updatedPresentation.data.beamer_content);
-          // Auto-process to PDF
-          await processLatexToPdf(updatedPresentation.data.beamer_content);
-        }
-      }
+      
+      toast.success('Presentation generation started!');
     } catch (error: any) {
-      setProcessingState(PROCESSING_STATES.ERROR);
-      setProcessingError(error.response?.data?.message || 'Failed to generate presentation');
-      toast.error(error.response?.data?.message || 'Failed to generate presentation');
+      toast.error(error.message || 'Failed to start presentation generation');
     }
   };
+
+  // Handle completed generation - extract Beamer content and process to PDF
+  React.useEffect(() => {
+    if (isCompleted && result?.result?.beamer_content) {
+      setLatexContent(result.result.beamer_content);
+      // Auto-process to PDF
+      processLatexToPdf(result.result.beamer_content);
+    }
+  }, [isCompleted, result]);
 
   const handleDownload = async () => {
     if (!selectedUnit) {
@@ -172,10 +162,31 @@ const PresentationsPage = () => {
   const handleViewExisting = async () => {
     if (existingPresentation?.beamer_content) {
       setLatexContent(existingPresentation.beamer_content);
-      setProcessingState(PROCESSING_STATES.COMPLETED);
       
       // Auto-process existing LaTeX to PDF
       await processLatexToPdf(existingPresentation.beamer_content);
+    }
+  };
+
+  const handleViewResult = () => {
+    if (result?.result?.beamer_content) {
+      setLatexContent(result.result.beamer_content);
+      processLatexToPdf(result.result.beamer_content);
+    }
+  };
+
+  const handleDownloadResult = () => {
+    if (result?.result?.beamer_content) {
+      const blob = new Blob([result.result.beamer_content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedUnitData?.unit_code || selectedUnit}_presentation.tex`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Beamer LaTeX file downloaded!');
     }
   };
 
@@ -193,23 +204,6 @@ const PresentationsPage = () => {
     setLatexModified(false);
   };
 
-  const getProcessingMessage = () => {
-    switch (processingState) {
-      case PROCESSING_STATES.GENERATING_LATEX:
-        return 'Generating Beamer LaTeX content...';
-      case PROCESSING_STATES.PROCESSING_PDF:
-        return 'LaTeX generated, now processing to generate PDF...';
-      case PROCESSING_STATES.COMPLETED:
-        return 'Presentation generated successfully!';
-      case PROCESSING_STATES.ERROR:
-        return `Error: ${processingError}`;
-      default:
-        return '';
-    }
-  };
-
-  const isProcessing = processingState === PROCESSING_STATES.GENERATING_LATEX || 
-                     processingState === PROCESSING_STATES.PROCESSING_PDF;
 
   return (
     <AuthGuard>
@@ -220,91 +214,31 @@ const PresentationsPage = () => {
         backHref="/units"
       >
         <div className="space-y-6">
-          {/* Configuration */}
+          {/* Unit Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Presentation Configuration</CardTitle>
+              <CardTitle>Select Unit</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Enhanced Unit Selector */}
-                <UnitSelector
-                  units={unitsData?.rows || []}
-                  selectedUnit={selectedUnit}
-                  onUnitSelect={handleUnitSelect}
-                  label="Select Unit"
-                  placeholder="Search units..."
-                />
-
-                <div className="space-y-2">
-                  <Label>Generation Method</Label>
-                  <Select value={generationMethod} onValueChange={setGenerationMethod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose generation method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(generationMethods).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(themes).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Color Scheme</Label>
-                  <Select value={colorScheme} onValueChange={setColorScheme}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose color scheme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(colorSchemes).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Generate Button */}
-              <Button 
-                onClick={handleGenerate} 
-                disabled={isProcessing || !selectedUnit}
-                className="w-full"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {processingState === PROCESSING_STATES.GENERATING_LATEX ? 'Generating LaTeX...' : 'Processing PDF...'}
-                  </>
-                ) : (
-                  <>
-                    <Presentation className="mr-2 h-4 w-4" />
-                    Generate Presentation
-                  </>
-                )}
-              </Button>
+            <CardContent>
+              <UnitSelector
+                units={unitsData?.rows || []}
+                selectedUnit={selectedUnit}
+                onUnitSelect={handleUnitSelect}
+                label="Select Unit"
+                placeholder="Search units..."
+              />
             </CardContent>
           </Card>
+
+          {/* Generation Options - Show only if unit is selected and not generating */}
+          {selectedUnit && !isGenerating && (
+            <GenerationOptions
+              type="presentation"
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              disabled={!selectedUnit}
+            />
+          )}
 
           {/* Existing Presentation */}
           {existingPresentation && (
@@ -352,34 +286,37 @@ const PresentationsPage = () => {
             </Card>
           )}
 
-          {/* Processing Status */}
-          {isProcessing && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-center space-x-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {getProcessingMessage()}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      This may take a few moments...
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Generation Progress */}
+          {isGenerating && progress && (
+            <GenerationProgress
+              progress={progress}
+              onCancel={cancelGeneration}
+              unitInfo={selectedUnitData ? {
+                unitCode: selectedUnitData.unit_code,
+                unitTitle: selectedUnitData.name
+              } : undefined}
+              type="presentation"
+            />
           )}
 
-          {/* PDF/LaTeX Viewer */}
-          {processingState === PROCESSING_STATES.COMPLETED && (latexContent || pdfUrl) && (
+          {/* Generation Results */}
+          {isCompleted && result && (
+            <GenerationResults
+              result={result}
+              onView={handleViewResult}
+              onDownload={handleDownloadResult}
+            />
+          )}
+
+          {/* PDF/LaTeX Viewer - Show when content is available */}
+          {(latexContent || pdfUrl) && (
             <div className="space-y-4">
               {/* View Toggle */}
               <div className="flex justify-center">
                 <ViewToggle
                   currentView={viewMode}
                   onViewChange={setViewMode}
-                  disabled={isProcessing}
+                  disabled={false}
                 />
               </div>
 
@@ -387,68 +324,26 @@ const PresentationsPage = () => {
               {viewMode === VIEW_MODES.PDF ? (
                 <PdfViewer
                   pdfUrl={pdfUrl || undefined}
-                  fileName={`${selectedUnit}_presentation.pdf`}
-                  isLoading={processingState === PROCESSING_STATES.PROCESSING_PDF}
-                  error={processingState === PROCESSING_STATES.ERROR ? processingError : undefined}
+                  fileName={`${selectedUnitData?.unit_code || selectedUnit}_presentation.pdf`}
+                  isLoading={processLatexMutation.isPending}
+                  error={processingError}
                 />
               ) : (
                 <LatexEditor
                   content={latexContent}
-                  isLoading={isProcessing}
+                  isLoading={false}
                   isModified={latexModified}
-                  error={processingState === PROCESSING_STATES.ERROR ? processingError : undefined}
+                  error={processingError}
                   onContentChange={handleLatexContentChange}
                   onRenderPdf={handleRenderPdf}
-                  fileName={`${selectedUnit}_presentation.tex`}
+                  fileName={`${selectedUnitData?.unit_code || selectedUnit}_presentation.tex`}
                 />
               )}
             </div>
           )}
 
-          {/* Error State */}
-          {processingState === PROCESSING_STATES.ERROR && !isProcessing && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="flex items-center justify-center w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full">
-                      <RefreshCw className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                      Generation Failed
-                    </p>
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                      {processingError}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerate}
-                    disabled={isProcessing}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Empty State */}
-          {processingState === PROCESSING_STATES.IDLE && !existingPresentation && selectedUnit && (
-            <Card>
-              <CardContent className="p-8">
-                <EmptyState
-                  icon={<Presentation />}
-                  title="Ready to Generate"
-                  description="Click the generate button above to create professional presentation slides for this unit."
-                />
-              </CardContent>
-            </Card>
-          )}
-
+          {/* Empty State - Show when no unit selected */}
           {!selectedUnit && (
             <Card>
               <CardContent className="p-8">
@@ -456,6 +351,19 @@ const PresentationsPage = () => {
                   icon={<Presentation />}
                   title="Select a Unit"
                   description="Choose a unit from the dropdown above to get started with presentation generation."
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ready State - Show when unit selected but no generation in progress */}
+          {selectedUnit && !isGenerating && !result && !existingPresentation && (
+            <Card>
+              <CardContent className="p-8">
+                <EmptyState
+                  icon={<Presentation />}
+                  title="Ready to Generate"
+                  description="Configure your generation options above and click generate to create professional presentation slides for this unit."
                 />
               </CardContent>
             </Card>

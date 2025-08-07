@@ -397,7 +397,52 @@ export const useSaveAssessmentSample = () => {
   });
 };
 
-// Study Guides
+// Study Guides - New Asynchronous API (using existing Azure endpoints)
+export const useStartStudyGuideGeneration = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      generation_method?: string;
+      user_timezone?: string;
+    }) => {
+      // Use existing Azure API endpoint - now returns 202 with job_id
+      const response = await api.post(`/study-guides/${data.unit_id}/generate-latex`, {
+        generation_method: data.generation_method || 'dynamic_chapters',
+        timezone: data.user_timezone || 'UTC',
+      });
+      return response.data;
+    },
+  });
+};
+
+export const useCheckStudyGuideStatus = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      job_id: string;
+    }) => {
+      // New status endpoint added to Azure API
+      const response = await api.get(`/study-guides/${data.unit_id}/generation-status/${data.job_id}`);
+      return response.data;
+    },
+  });
+};
+
+export const useGetStudyGuideResult = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      job_id: string;
+    }) => {
+      // Use existing content retrieval endpoint
+      const response = await api.get(`/study-guides/${data.unit_id}/latex`);
+      return response.data;
+    },
+  });
+};
+
+// Legacy hook - keep for backward compatibility but mark as deprecated
+/** @deprecated Use the new asynchronous generation hooks instead */
 export const useGenerateStudyGuide = () => {
   return useMutation({
     mutationFn: async (data: {
@@ -426,7 +471,56 @@ export const useStudyGuide = (unitId: string) => {
   });
 };
 
-// Presentations
+// Presentations - New Asynchronous API (using existing Azure endpoints)
+export const useStartPresentationGeneration = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      generation_method?: string;
+      theme?: string;
+      color_scheme?: string;
+      user_timezone?: string;
+    }) => {
+      // Use existing Azure API endpoint - now returns 202 with job_id
+      const response = await api.post(`/presentations/${data.unit_id}/generate-beamer`, {
+        generation_method: data.generation_method || 'dynamic_slides',
+        theme: data.theme || 'madrid',
+        color_scheme: data.color_scheme || 'default',
+        timezone: data.user_timezone || 'UTC',
+      });
+      return response.data;
+    },
+  });
+};
+
+export const useCheckPresentationStatus = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      job_id: string;
+    }) => {
+      // New status endpoint added to Azure API
+      const response = await api.get(`/presentations/${data.unit_id}/generation-status/${data.job_id}`);
+      return response.data;
+    },
+  });
+};
+
+export const useGetPresentationResult = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      unit_id: string;
+      job_id: string;
+    }) => {
+      // Use existing content retrieval endpoint
+      const response = await api.get(`/presentations/${data.unit_id}/beamer`);
+      return response.data;
+    },
+  });
+};
+
+// Legacy hooks - keep for backward compatibility but mark as deprecated
+/** @deprecated Use the new asynchronous generation hooks instead */
 export const useGeneratePresentation = () => {
   return useMutation({
     mutationFn: async (data: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AuthGuard from '@/components/auth/auth-guard';
 import MainLayout from '@/components/layout/main-layout';
@@ -10,7 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UnitSelector from '@/components/ui/unit-selector';
-import { useUnits, useGenerateStudyGuide, useStudyGuide, useProcessLatex } from '@/hooks/use-api';
+import { useUnits, useStudyGuide, useProcessLatex } from '@/hooks/use-api';
+import { useJobManager } from '@/hooks/use-job-manager';
+import GenerationOptions from '@/components/ui/generation-options';
+import GenerationProgress from '@/components/ui/generation-progress';
+import GenerationResults from '@/components/ui/generation-results';
 import { downloadFile } from '@/lib/utils';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import EmptyState from '@/components/ui/empty-state';
@@ -19,17 +23,13 @@ import LatexEditor from '@/components/ui/latex-editor';
 import ViewToggle from '@/components/ui/view-toggle';
 import { BookOpen, Download, FileText, Eye, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROCESSING_STATES, VIEW_MODES, API_BASE_URL } from '@/constants';
-import { ProcessingState, ViewMode } from '@/types';
+import { VIEW_MODES, API_BASE_URL } from '@/constants';
+import { ViewMode } from '@/types';
+import { GenerationConfig } from '@/components/ui/generation-options';
 
 const StudyGuidesPage = () => {
   const searchParams = useSearchParams();
   const [selectedUnit, setSelectedUnit] = useState(searchParams?.get('unit') || '');
-  const [generationMethod, setGenerationMethod] = useState('dynamic_chapters');
-  const [generatedContent, setGeneratedContent] = useState('');
-  
-  // Enhanced state for LaTeX processing workflow
-  const [processingState, setProcessingState] = useState<ProcessingState>(PROCESSING_STATES.IDLE);
   const [viewMode, setViewMode] = useState<ViewMode>(VIEW_MODES.PDF);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [latexContent, setLatexContent] = useState('');
@@ -37,23 +37,44 @@ const StudyGuidesPage = () => {
   const [processingError, setProcessingError] = useState<string | null>(null);
 
   const { data: unitsData } = useUnits(0, 100);
-  const generateMutation = useGenerateStudyGuide();
   const processLatexMutation = useProcessLatex();
   const { data: existingGuide, refetch: refetchGuide } = useStudyGuide(selectedUnit);
+  
+  // New job manager for asynchronous generation
+  const {
+    startGeneration,
+    cancelGeneration,
+    reset: resetJobManager,
+    progress,
+    result,
+    isGenerating,
+    isCompleted,
+    isFailed,
+    hasError
+  } = useJobManager();
 
-  const generationMethods = {
-    'dynamic_chapters': 'Standard Generation - Generates a standard document, takes 8-10 mins to render',
-    'dynamic_multi_call': 'Detailed Generation - Generates much detailed and longer document, takes 12-15 mins',
-  };
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Study Guides Page - State Update:', {
+      isGenerating,
+      hasProgress: !!progress,
+      progress: progress,
+      isCompleted,
+      isFailed,
+      hasError,
+      hasResult: !!result
+    });
+  }, [isGenerating, progress, isCompleted, isFailed, hasError, result]);
+
+  const selectedUnitData = unitsData?.rows?.find(unit => unit._id === selectedUnit);
 
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnit(unitId);
-    setGeneratedContent('');
+    resetJobManager();
     resetProcessingState();
   };
 
   const resetProcessingState = () => {
-    setProcessingState(PROCESSING_STATES.IDLE);
     setViewMode(VIEW_MODES.PDF);
     setPdfUrl(null);
     setLatexContent('');
@@ -63,7 +84,6 @@ const StudyGuidesPage = () => {
   
   const processLatexToPdf = async (latexFileContent: string) => {
     try {
-      setProcessingState(PROCESSING_STATES.PROCESSING_PDF);
       setProcessingError(null);
       
       // Create a file from the LaTeX content
@@ -77,10 +97,8 @@ const StudyGuidesPage = () => {
 
       if (result.status === 'success' && result.pdf_created) {
         setPdfUrl((result as any).pdfUrl);
-        setProcessingState(PROCESSING_STATES.COMPLETED);
         toast.success('PDF generated successfully!');
       } else {
-        setProcessingState(PROCESSING_STATES.ERROR);
         setProcessingError(result.message || 'Failed to generate PDF');
         
         if (result.errors_found && result.errors_found.length > 0) {
@@ -90,51 +108,39 @@ const StudyGuidesPage = () => {
         }
       }
     } catch (error: any) {
-      setProcessingState(PROCESSING_STATES.ERROR);
       setProcessingError(error.message || 'An unexpected error occurred');
       toast.error('Failed to process LaTeX file');
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (config: GenerationConfig) => {
     if (!selectedUnit) {
       toast.error('Please select a unit');
       return;
     }
 
     try {
-      setProcessingState(PROCESSING_STATES.GENERATING_LATEX);
       resetProcessingState();
-      setProcessingState(PROCESSING_STATES.GENERATING_LATEX);
       
-      // Get user's timezone
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      const result = await generateMutation.mutateAsync({
-        unit_id: selectedUnit,
-        generation_method: generationMethod,
-        timezone: userTimezone,
+      await startGeneration('study_guide', selectedUnit, {
+        generation_method: config.generation_method,
+        user_timezone: config.user_timezone
       });
-
-      if (result.status) {
-        setGeneratedContent('LaTeX generated, now processing to generate PDF...');
-        toast.success('LaTeX generated successfully!');
-        refetchGuide();
-        
-        // Fetch the generated LaTeX content
-        const updatedGuide = await refetchGuide();
-        if (updatedGuide.data?.latex_content) {
-          setLatexContent(updatedGuide.data.latex_content);
-          // Auto-process to PDF
-          await processLatexToPdf(updatedGuide.data.latex_content);
-        }
-      }
+      
+      toast.success('Study guide generation started!');
     } catch (error: any) {
-      setProcessingState(PROCESSING_STATES.ERROR);
-      setProcessingError(error.response?.data?.message || 'Failed to generate study guide');
-      toast.error(error.response?.data?.message || 'Failed to generate study guide');
+      toast.error(error.message || 'Failed to start study guide generation');
     }
   };
+
+  // Handle completed generation - extract LaTeX content and process to PDF
+  React.useEffect(() => {
+    if (isCompleted && result?.result?.latex_content) {
+      setLatexContent(result.result.latex_content);
+      // Auto-process to PDF
+      processLatexToPdf(result.result.latex_content);
+    }
+  }, [isCompleted, result]);
 
   const handleDownload = async () => {
     if (!selectedUnit) {
@@ -155,10 +161,31 @@ const StudyGuidesPage = () => {
   const handleViewExisting = async () => {
     if (existingGuide?.latex_content) {
       setLatexContent(existingGuide.latex_content);
-      setProcessingState(PROCESSING_STATES.COMPLETED);
       
       // Auto-process existing LaTeX to PDF
       await processLatexToPdf(existingGuide.latex_content);
+    }
+  };
+
+  const handleViewResult = () => {
+    if (result?.result?.latex_content) {
+      setLatexContent(result.result.latex_content);
+      processLatexToPdf(result.result.latex_content);
+    }
+  };
+
+  const handleDownloadResult = () => {
+    if (result?.result?.latex_content) {
+      const blob = new Blob([result.result.latex_content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedUnitData?.unit_code || selectedUnit}_study_guide.tex`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('LaTeX file downloaded!');
     }
   };
 
@@ -176,23 +203,6 @@ const StudyGuidesPage = () => {
     setLatexModified(false);
   };
 
-  const getProcessingMessage = () => {
-    switch (processingState) {
-      case PROCESSING_STATES.GENERATING_LATEX:
-        return 'Generating LaTeX content...';
-      case PROCESSING_STATES.PROCESSING_PDF:
-        return 'LaTeX generated, now processing to generate PDF...';
-      case PROCESSING_STATES.COMPLETED:
-        return 'Study guide generated successfully!';
-      case PROCESSING_STATES.ERROR:
-        return `Error: ${processingError}`;
-      default:
-        return '';
-    }
-  };
-
-  const isProcessing = processingState === PROCESSING_STATES.GENERATING_LATEX || 
-                     processingState === PROCESSING_STATES.PROCESSING_PDF;
 
   return (
     <AuthGuard>
@@ -203,59 +213,31 @@ const StudyGuidesPage = () => {
         backHref="/units"
       >
         <div className="space-y-6">
-          {/* Configuration */}
+          {/* Unit Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Study Guide Configuration</CardTitle>
+              <CardTitle>Select Unit</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Enhanced Unit Selector */}
-                <UnitSelector
-                  units={unitsData?.rows || []}
-                  selectedUnit={selectedUnit}
-                  onUnitSelect={handleUnitSelect}
-                  label="Select Unit"
-                  placeholder="Search units..."
-                />
-
-                <div className="space-y-2">
-                  <Label>Generation Method</Label>
-                  <Select value={generationMethod} onValueChange={setGenerationMethod}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose generation method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(generationMethods).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Generate Button */}
-              <Button 
-                onClick={handleGenerate} 
-                disabled={isProcessing || !selectedUnit}
-                className="w-full"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {processingState === PROCESSING_STATES.GENERATING_LATEX ? 'Generating LaTeX...' : 'Processing PDF...'}
-                  </>
-                ) : (
-                  <>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Generate Study Guide
-                  </>
-                )}
-              </Button>
+            <CardContent>
+              <UnitSelector
+                units={unitsData?.rows || []}
+                selectedUnit={selectedUnit}
+                onUnitSelect={handleUnitSelect}
+                label="Select Unit"
+                placeholder="Search units..."
+              />
             </CardContent>
           </Card>
+
+          {/* Generation Options - Show only if unit is selected and not generating */}
+          {selectedUnit && !isGenerating && (
+            <GenerationOptions
+              type="study_guide"
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              disabled={!selectedUnit}
+            />
+          )}
 
           {/* Existing Guide */}
           {existingGuide && (
@@ -301,34 +283,37 @@ const StudyGuidesPage = () => {
             </Card>
           )}
 
-          {/* Processing Status */}
-          {isProcessing && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-center space-x-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {getProcessingMessage()}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      This may take a few moments...
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Generation Progress */}
+          {isGenerating && progress && (
+            <GenerationProgress
+              progress={progress}
+              onCancel={cancelGeneration}
+              unitInfo={selectedUnitData ? {
+                unitCode: selectedUnitData.unit_code,
+                unitTitle: selectedUnitData.name
+              } : undefined}
+              type="study_guide"
+            />
           )}
 
-          {/* PDF/LaTeX Viewer */}
-          {processingState === PROCESSING_STATES.COMPLETED && (latexContent || pdfUrl) && (
+          {/* Generation Results */}
+          {isCompleted && result && (
+            <GenerationResults
+              result={result}
+              onView={handleViewResult}
+              onDownload={handleDownloadResult}
+            />
+          )}
+
+          {/* PDF/LaTeX Viewer - Show when content is available */}
+          {(latexContent || pdfUrl) && (
             <div className="space-y-4">
               {/* View Toggle */}
               <div className="flex justify-center">
                 <ViewToggle
                   currentView={viewMode}
                   onViewChange={setViewMode}
-                  disabled={isProcessing}
+                  disabled={false}
                 />
               </div>
 
@@ -336,68 +321,26 @@ const StudyGuidesPage = () => {
               {viewMode === VIEW_MODES.PDF ? (
                 <PdfViewer
                   pdfUrl={pdfUrl || undefined}
-                  fileName={`${selectedUnit}_study_guide.pdf`}
-                  isLoading={processingState === PROCESSING_STATES.PROCESSING_PDF}
-                  error={processingState === PROCESSING_STATES.ERROR ? processingError : undefined}
+                  fileName={`${selectedUnitData?.unit_code || selectedUnit}_study_guide.pdf`}
+                  isLoading={processLatexMutation.isPending}
+                  error={processingError}
                 />
               ) : (
                 <LatexEditor
                   content={latexContent}
-                  isLoading={isProcessing}
+                  isLoading={false}
                   isModified={latexModified}
-                  error={processingState === PROCESSING_STATES.ERROR ? processingError : undefined}
+                  error={processingError}
                   onContentChange={handleLatexContentChange}
                   onRenderPdf={handleRenderPdf}
-                  fileName={`${selectedUnit}_study_guide.tex`}
+                  fileName={`${selectedUnitData?.unit_code || selectedUnit}_study_guide.tex`}
                 />
               )}
             </div>
           )}
 
-          {/* Error State */}
-          {processingState === PROCESSING_STATES.ERROR && !isProcessing && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="flex items-center justify-center w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full">
-                      <RefreshCw className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                      Generation Failed
-                    </p>
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                      {processingError}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGenerate}
-                    disabled={isProcessing}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Empty State */}
-          {processingState === PROCESSING_STATES.IDLE && !existingGuide && selectedUnit && (
-            <Card>
-              <CardContent className="p-8">
-                <EmptyState
-                  icon={<BookOpen />}
-                  title="Ready to Generate"
-                  description="Click the generate button above to create a comprehensive study guide for this unit."
-                />
-              </CardContent>
-            </Card>
-          )}
-
+          {/* Empty State - Show when no unit selected */}
           {!selectedUnit && (
             <Card>
               <CardContent className="p-8">
@@ -405,6 +348,19 @@ const StudyGuidesPage = () => {
                   icon={<BookOpen />}
                   title="Select a Unit"
                   description="Choose a unit from the dropdown above to get started with study guide generation."
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Ready State - Show when unit selected but no generation in progress */}
+          {selectedUnit && !isGenerating && !result && !existingGuide && (
+            <Card>
+              <CardContent className="p-8">
+                <EmptyState
+                  icon={<BookOpen />}
+                  title="Ready to Generate"
+                  description="Configure your generation options above and click generate to create a comprehensive study guide for this unit."
                 />
               </CardContent>
             </Card>
